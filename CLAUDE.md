@@ -14,7 +14,7 @@ Repositório do projeto "The Collector Club" (operação de compra e venda de re
 
 - **Fonte dos dados:** Google Sheets "Financeiro — The Collector Club" (planilha real do João), abas: Instruções, Dashboard, Relógios, Lançamentos, DRE, Fluxo de Caixa, Checks, Listas.
 
-- **`data/snapshot.json`:** ainda não existe neste repo. Vai ser criado/atualizado pelo workflow do n8n descrito abaixo. Até isso rodar, o site mostra estado vazio.
+- **`data/snapshot.json`:** existe, semeado vazio (schema completo, arrays em branco). Serve pra dois fins: o site parar de tomar 404 no `raw.githubusercontent`, e a API contents do GitHub ter um `sha` pro n8n sobrescrever. Enquanto o workflow não rodar, o painel mostra estado vazio.
 
 ## Schema do snapshot.json
 
@@ -43,27 +43,45 @@ Repositório do projeto "The Collector Club" (operação de compra e venda de re
 
 ## Pipeline de atualização (n8n → GitHub → site)
 
-Desenho completo (nó a nó + código JS) está no guia publicado: pedir pro Claude reabrir ou consultar o histórico da conversa em claude.ai/code/session_011JNSMZpF7PEpiaSaUitdHE. Resumo:
+Workflow pronto pra importar: [`collector-club-n8n-workflow.json`](collector-club-n8n-workflow.json). Seis nós:
 
-1. Google Sheets Trigger (rowUpdate na aba Lançamentos).
-2. Lê a aba **Checks** e confere a linha `STATUS GERAL` — só segue se `= OK` (gate de "pronto para publicar", reaproveitando a verificação de integridade que já existe na planilha, em vez de um checkbox manual novo).
-3. Lê Dashboard, Relógios, Lançamentos, DRE, Fluxo de Caixa (raw, arrays de células).
-4. Code node monta o `snapshot.json` seguindo o schema acima (parsing de moeda BRL, porcentagem, datas).
-5. Nó do GitHub (File → Edit) comita `data/snapshot.json` na branch `main` deste repo.
+1. **Trigger — Lançamentos atualizado** (`googleSheetsTrigger`, `rowUpdate`, poll a cada 10 min).
+2. **Ler planilha (batchGet)** — um único HTTP Request no `spreadsheets.values:batchGet` trazendo as 6 abas (Checks, Dashboard, Relógios, Lançamentos, DRE, Fluxo de Caixa) como arrays de célula crus.
+3. **Montar snapshot** (Code) — confere o `STATUS GERAL` da aba Checks e monta o `snapshot.json` no schema acima, devolvendo o conteúdo já em base64.
+4. **Publicação pronta?** (IF) — só segue se `STATUS GERAL = OK`.
+5. **Buscar sha atual** — `GET /contents/data/snapshot.json`, com `onError: continueRegularOutput`.
+6. **Commit data/snapshot.json** — `PUT /contents/...` na branch `main`.
 
-Esse pipeline foi validado nesta sessão com um script Python equivalente (`build_snapshot.py`) rodando sobre uma leitura real da planilha — os números de KPIs, 8 relógios, 43 lançamentos, 24 meses de DRE e 24 meses de fluxo de caixa saíram corretos.
+### Por que HTTP Request e não os nós nativos
+
+- **Google Sheets:** o nó nativo (v4.5) consome a primeira linha do range como cabeçalho e devolve objetos, não arrays de célula. No Dashboard isso comeria justamente a linha de KPIs. O `batchGet` devolve a matriz crua. De quebra, uma request no lugar de cinco elimina o fan-in: cinco nós ligados na mesma entrada de um Code node fazem ele executar cinco vezes, o que geraria cinco commits idênticos por rodada.
+- **GitHub:** o nó nativo codifica o conteúdo em base64 sozinho — mandar base64 pra ele gera base64 duplo e um arquivo ilegível. E sua operação `file:edit` estoura 404 quando o arquivo não existe, sem caminho de fallback. Com a API crua dá pra fazer `GET sha → PUT`, tratando o 404 como "arquivo novo".
+
+### Credenciais necessárias no n8n
+
+| Nó | Tipo de credencial |
+|---|---|
+| Trigger | `googleSheetsTriggerOAuth2Api` |
+| Ler planilha (batchGet) | `googleSheetsOAuth2Api` — **é um registro separado do usado pelo trigger** |
+| Buscar sha / Commit | `githubApi` (PAT com escopo de escrita em `contents` deste repo) |
+
+Trocar `COLOQUE_AQUI_O_ID_DA_PLANILHA` pelo ID real da planilha em dois lugares: no `documentId` do trigger e na URL do batchGet.
+
+O parsing (moeda BRL, negativo entre parênteses, percentual com vírgula, linhas raggeds do batchGet) foi testado contra um fixture representativo — KPIs, relógios, lançamentos, DRE e fluxo saem corretos. O que **não** foi testado ainda é o workflow rodando contra a planilha real.
 
 ## Decisões já tomadas (não reabrir sem necessidade)
 
-- **Sem backend/serverless:** Vercel não tem tooling neste projeto para provisionar storage (Blob/KV) nem env vars — por isso os dados moram como arquivo estático no GitHub, lido via `raw.githubusercontent.com`, e não há função serverless nenhuma.
-- **Sem autenticação:** acesso é só para o João, painel fica público na URL mas sem login (decisão explícita dele).
+- **Sem backend/serverless:** os dados moram como arquivo estático no GitHub, lidos via `raw.githubusercontent.com`. Não há função serverless nenhuma.
+  - A justificativa antiga ("a Vercel não tem tooling para env vars/storage") estava errada: o projeto `pegae-machine` do João usa exatamente isso — uma rota `/api/ingest` na Vercel com `INGEST_SECRET` em env var. A decisão de ficar sem backend continua válida por simplicidade, mas não por impossibilidade.
+- **Sem autenticação de aplicação:** o painel não tem login próprio (decisão explícita do João). **Atenção:** hoje a URL não está pública — o projeto na Vercel está com Deployment Protection ligada e devolve 302 para o SSO da Vercel. Precisa desligar em Settings → Deployment Protection pra o João conseguir abrir.
 - **Atualização periódica, não real-time:** o site dá refresh a cada 5 min enquanto aberto; a atualização "de verdade" depende do n8n rodar (manual por enquanto — agendamento automático só depois do fluxo estar validado ponta a ponta).
 - **n8n é o responsável por escrever no GitHub**, não o Claude — evita o Claude precisar de credenciais de escrita no repo.
 - **Repositório público** (`panaderiapontaverde/collector-club`), confirmado pelo João.
 
 ## Próximos passos
 
-- [ ] Montar o workflow no n8n (guia já entregue).
-- [ ] Rodar o workflow uma vez, confirmar o commit de `data/snapshot.json` e ver o site popular.
-- [ ] Opcional: linkar o projeto na Vercel a este repositório GitHub (via `create_git_project`) para deploy automático do `index.html` a cada push, em vez de upload manual.
-- [ ] Decidir junto com o João se/como agendar a execução automática do trigger do n8n.
+- [ ] Importar `collector-club-n8n-workflow.json` no n8n, preencher o ID da planilha (2 lugares) e ligar as 3 credenciais.
+- [ ] Rodar uma vez com o botão de teste e conferir o `resumo` do nó "Montar snapshot" (contagem de relógios/lançamentos/meses) antes de deixar comitar.
+- [ ] Desligar a Deployment Protection na Vercel — sem isso o painel não abre pro João.
+- [ ] Ativar o workflow (`active: true`) depois de validado ponta a ponta.
+- [ ] Opcional: linkar o projeto da Vercel a este repositório GitHub, pra o `index.html` fazer deploy automático a cada push em vez de upload manual.

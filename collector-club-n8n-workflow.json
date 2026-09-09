@@ -1,312 +1,227 @@
 {
-  "name": "Collector Club -> GitHub snapshot",
+  "name": "Collector Club — snapshot para o GitHub",
   "nodes": [
     {
-      "id": "trigger-node",
-      "name": "Trigger - Lançamentos atualizado",
-      "type": "n8n-nodes-base.googleSheetsTrigger",
-      "typeVersion": 1,
-      "position": [-1400, 300],
       "parameters": {
-        "event": "rowUpdate",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 10,
+              "unit": "minutes"
+            }
+          ]
+        },
         "documentId": {
           "__rl": true,
           "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
+          "mode": "id"
         },
         "sheetName": {
           "__rl": true,
           "value": "Lançamentos",
-          "mode": "list"
+          "mode": "name"
         },
-        "pollTimes": {
-          "item": [
-            { "mode": "everyX", "value": 10, "unit": "minutes" }
-          ]
-        }
+        "event": "rowUpdate",
+        "options": {}
       },
-      "credentials": {
-        "googleSheetsTriggerOAuth2Api": {
-          "id": "",
-          "name": "Google Sheets - Collector Club"
-        }
-      }
+      "id": "trg-lancamentos",
+      "name": "Trigger — Lançamentos atualizado",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "notes": "Dispara quando qualquer linha da aba Lançamentos muda. O gate de verdade é o STATUS GERAL da aba Checks, conferido no nó Montar snapshot."
     },
     {
-      "id": "read-checks",
-      "name": "Ler Checks",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-1160, 300],
       "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "Checks",
-          "mode": "list"
-        },
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/COLOQUE_AQUI_O_ID_DA_PLANILHA/values:batchGet?ranges=Checks!A1:G20&ranges=Dashboard!A1:H50&ranges=Rel%C3%B3gios!A5:S505&ranges=Lan%C3%A7amentos!A5:W505&ranges=DRE!A1:J40&ranges=Fluxo%20de%20Caixa!A1:F40",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
         "options": {
-          "range": "A1:G20",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": {
-            "values": { "rangeDefinition": "specifyRangeA1" }
+          "response": {
+            "response": {
+              "neverError": false
+            }
           }
         }
       },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "",
-          "name": "Google Sheets - Collector Club"
-        }
-      }
+      "id": "http-batchget",
+      "name": "Ler planilha (batchGet)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "notes": "Uma request traz as 6 abas como arrays de célula crus. Substitui os 5 nós Google Sheets: o nó nativo consome a 1ª linha do range como cabeçalho, o que comeria a linha de KPIs do Dashboard. Sem valueRenderOption = FORMATTED_VALUE, que é o formato que o parser espera (R$ 1.234,56 / 12,3%)."
     },
     {
-      "id": "check-status",
-      "name": "Verificar STATUS GERAL",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-920, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const items = $input.all();\nconst rows = items.map(i => Object.values(i.json));\nlet pronto = false;\nfor (const row of rows) {\n  const cells = row.map(c => (c ?? '').toString().trim());\n  if (cells[0] === 'STATUS GERAL') {\n    const statusCell = cells.find((c, i) => i > 0 && c !== '');\n    pronto = statusCell === 'OK';\n    break;\n  }\n}\nreturn [{ json: { pronto } }];"
-      }
+        "jsCode": "// Recebe a resposta do values:batchGet (um único item) e devolve o snapshot.json\n// pronto pra ser comitado. Faz também o gate de STATUS GERAL, pra não precisar\n// de um nó Code separado só pra isso.\n//\n// A ordem aqui TEM que bater com a ordem dos `ranges=` na URL do nó\n// \"Ler planilha (batchGet)\": a API do Sheets devolve valueRanges na mesma ordem\n// em que foram pedidos.\nconst ORDEM = ['Checks', 'Dashboard', 'Relogios', 'Lancamentos', 'DRE', 'FluxoCaixa'];\n// Largura de cada range, em colunas. O batchGet corta células vazias no fim de\n// cada linha, então uma linha que termina em branco volta mais curta que as\n// outras — e os filtros por `row.length` descartariam ela por engano.\nconst LARGURA = { Checks: 7, Dashboard: 8, Relogios: 19, Lancamentos: 23, DRE: 10, FluxoCaixa: 6 };\n\nconst resposta = $input.first().json;\nconst valueRanges = resposta.valueRanges;\nif (!Array.isArray(valueRanges) || valueRanges.length !== ORDEM.length) {\n  throw new Error(\n    'O batchGet devolveu ' + (valueRanges ? valueRanges.length : 0) + ' ranges, ' +\n    'esperado ' + ORDEM.length + '. Resposta: ' + JSON.stringify(resposta).slice(0, 500)\n  );\n}\n\nconst abas = {};\nORDEM.forEach((nome, i) => {\n  const linhas = valueRanges[i].values || [];\n  const w = LARGURA[nome];\n  abas[nome] = linhas.map((row) => {\n    const out = [];\n    for (let c = 0; c < w; c++) out.push((row[c] ?? '').toString().trim());\n    return out;\n  });\n});\n\nfunction parseBRL(v) {\n  if (v === null || v === undefined) return null;\n  let s = String(v).trim();\n  if (s === '' || s === '-' || s === '—') return null;\n  let neg = false;\n  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }\n  const n = parseFloat(s.replace(/[^\\d,.\\-]/g, '').replace(/\\./g, '').replace(',', '.'));\n  if (isNaN(n)) return null;\n  return neg ? -n : n;\n}\nfunction parsePct(v) {\n  if (!v) return 0;\n  const n = parseFloat(String(v).replace('%', '').replace(',', '.'));\n  return isNaN(n) ? 0 : n;\n}\nfunction parseInt_(v) {\n  if (!v) return 0;\n  const n = parseInt(String(v).replace(/[^\\d\\-]/g, ''), 10);\n  return isNaN(n) ? 0 : n;\n}\nfunction nonblank(row) { return row.filter((c) => c !== ''); }\nfunction dedupe(row) {\n  const out = [];\n  for (const c of row) if (out.length === 0 || out[out.length - 1] !== c) out.push(c);\n  return out;\n}\n\n// ---- Gate: Checks / STATUS GERAL ----\nlet statusGeral = null;\nfor (const row of abas.Checks) {\n  if (row[0] === 'STATUS GERAL') {\n    statusGeral = row.find((c, i) => i > 0 && c !== '') ?? '';\n    break;\n  }\n}\nif (statusGeral === null) {\n  throw new Error('Não achei a linha \"STATUS GERAL\" na coluna A da aba Checks (range A1:G20).');\n}\nconst pronto = statusGeral === 'OK';\n\n// ---- Dashboard: KPIs + estoque por status ----\nconst dashRows = abas.Dashboard;\nconst kv = {};\nfor (let i = 0; i < dashRows.length - 1; i++) {\n  const labels = nonblank(dedupe(dashRows[i]));\n  if (!labels.length) continue;\n  if (labels.some((c) => /^(R\\$|-|\\d)/.test(c))) continue;\n  const values = nonblank(dedupe(dashRows[i + 1]));\n  if (values.length === labels.length && JSON.stringify(values) !== JSON.stringify(labels)) {\n    labels.forEach((lab, idx) => { if (!(lab in kv)) kv[lab] = values[idx]; });\n  }\n}\nconst kpis = {\n  faturamento: parseBRL(kv['FATURAMENTO']),\n  lucroLiquido: parseBRL(kv['LUCRO LÍQUIDO']),\n  saldoCaixa: parseBRL(kv['SALDO DE CAIXA']) ?? 0,\n  capitalEstoque: parseBRL(kv['CAPITAL EM ESTOQUE']) ?? 0,\n  pecasEstoque: parseInt_(kv['PEÇAS EM ESTOQUE']),\n  margemLiquida: parsePct(kv['MARGEM LÍQUIDA']),\n  dividaSocio: parseBRL(kv['DÍVIDA COM SÓCIO']) ?? 0,\n  patrimonioBruto: parseBRL(kv['PATRIMÔNIO BRUTO']) ?? 0,\n  patrimonioLiquido: parseBRL(kv['PATRIMÔNIO LÍQUIDO']) ?? 0,\n};\n\nconst estoquePorStatus = [];\nfor (let i = 0; i < dashRows.length; i++) {\n  const nb = nonblank(dashRows[i]);\n  if (nb[0] === 'Status' && nb[1] === 'Quantidade') {\n    for (let j = i + 1; j < dashRows.length; j++) {\n      const nb2 = nonblank(dashRows[j]);\n      if (nb2.length < 2) break;\n      estoquePorStatus.push({ status: nb2[0], qtd: parseInt_(nb2[1]) });\n    }\n    break;\n  }\n}\n\nlet mesAnalisado = null;\nfor (const row of dashRows) {\n  const idx = row.indexOf('Mês analisado');\n  if (idx !== -1 && row[idx + 1]) { mesAnalisado = row[idx + 1]; break; }\n}\n\n// ---- Relógios ----\nconst watches = abas.Relogios\n  .filter((r) => r[0] && r[0].startsWith('TCC'))\n  .map((c) => ({\n    itemId: c[0], marca: c[1], modelo: c[2], referencia: c[3], condicao: c[4],\n    status: c[5], dataCompra: c[6], dataEntrada: c[7], dataVenda: c[8], canal: c[9],\n    precoAnuncio: c[10], custoCompleto: c[11], vendaBruta: c[12], deducoes: c[13],\n    lucroLiquido: c[14], margem: c[15], dias: c[16] ? parseInt_(c[16]) : null,\n    lote: c[17], observacoes: c[18],\n  }));\n\n// ---- Lançamentos ----\nconst LANC = ['id', 'dataCompetencia', 'dataCaixa', 'itemId', 'lote', 'descricao', 'natureza',\n  'grupoDre', 'categoria', 'contraparte', 'conta', 'forma', 'moeda', 'valorOriginal', 'cambio',\n  'valorBRL', 'status', 'vencimento', 'documento', 'observacoes', 'centroCusto', 'tratamento',\n  'precisaoData'];\nconst lancamentos = abas.Lancamentos\n  .filter((r) => r[0] && r[0].startsWith('LCT-'))\n  .map((c) => {\n    const obj = {};\n    LANC.forEach((h, i) => { obj[h] = c[i] ?? ''; });\n    return obj;\n  });\n\n// ---- DRE mensal ----\nconst dreIdx = abas.DRE.findIndex((r) => r[0] === 'Mês' && r[1] && r[1].startsWith('Receita'));\nconst dreMensal = (dreIdx === -1 ? [] : abas.DRE.slice(dreIdx + 1))\n  .filter((r) => r[0])\n  .map((r) => ({\n    mes: r[0],\n    receitaBruta: parseBRL(r[1]) ?? 0,\n    deducoes: parseBRL(r[2]) ?? 0,\n    receitaLiquida: parseBRL(r[3]) ?? 0,\n    cmv: parseBRL(r[4]) ?? 0,\n    lucroBruto: parseBRL(r[5]) ?? 0,\n    despesasOp: parseBRL(r[6]) ?? 0,\n    resultadoLiquido: parseBRL(r[7]) ?? 0,\n    margemLiquida: parsePct(r[8]),\n  }));\n\n// ---- Fluxo de caixa ----\nconst fxIdx = abas.FluxoCaixa.findIndex((r) => r[0] === 'Mês' && r[1] && r[1].startsWith('Entradas'));\nconst fluxoCaixa = (fxIdx === -1 ? [] : abas.FluxoCaixa.slice(fxIdx + 1))\n  .filter((r) => r[0])\n  .map((r) => ({\n    mes: r[0],\n    entradas: parseBRL(r[1]) ?? 0,\n    saidas: parseBRL(r[2]) ?? 0,\n    saldoMes: parseBRL(r[3]) ?? 0,\n    saldoAcumulado: parseBRL(r[4]) ?? 0,\n  }));\n\n// Se o gate passou mas a planilha veio vazia, é sinal de range errado ou aba\n// renomeada — melhor estourar aqui do que comitar um snapshot vazio por cima de\n// um bom e o painel amanhecer zerado.\nif (pronto && watches.length === 0 && lancamentos.length === 0) {\n  throw new Error(\n    'STATUS GERAL = OK mas não veio nenhum relógio nem lançamento. ' +\n    'Confira os ranges Relógios!A5:S505 e Lançamentos!A5:W505 e os nomes das abas.'\n  );\n}\n\nconst snapshot = {\n  updatedAt: new Date().toISOString(),\n  mesAnalisado,\n  kpis,\n  estoquePorStatus,\n  watches,\n  lancamentos,\n  dreMensal,\n  fluxoCaixa,\n};\n\nconst texto = JSON.stringify(snapshot, null, 2);\n\nreturn [{\n  json: {\n    pronto,\n    statusGeral,\n    // A API contents do GitHub recebe o conteúdo em base64 — aqui é a API crua,\n    // via HTTP Request, então a codificação é nossa mesmo. (O nó nativo do\n    // GitHub codifica sozinho; mandar base64 pra ele geraria base64 duplo.)\n    contentB64: Buffer.from(texto, 'utf-8').toString('base64'),\n    resumo: {\n      relogios: watches.length,\n      lancamentos: lancamentos.length,\n      mesesDre: dreMensal.length,\n      mesesFluxo: fluxoCaixa.length,\n      bytes: Buffer.byteLength(texto, 'utf-8'),\n    },\n  },\n}];\n"
+      },
+      "id": "code-snapshot",
+      "name": "Montar snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
     },
     {
-      "id": "if-pronto",
-      "name": "Publicação pronta?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [-680, 300],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
           "combinator": "and",
           "conditions": [
             {
               "id": "cond-pronto",
-              "leftValue": "={{$json.pronto}}",
+              "leftValue": "={{ $json.pronto }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ]
         },
         "options": {}
-      }
-    },
-    {
-      "id": "read-dashboard",
-      "name": "Ler Dashboard",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-420, 0],
-      "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": { "__rl": true, "value": "Dashboard", "mode": "list" },
-        "options": {
-          "range": "A1:H50",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
-        }
       },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
-      }
-    },
-    {
-      "id": "read-relogios",
-      "name": "Ler Relógios",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-420, 140],
-      "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": { "__rl": true, "value": "Relógios", "mode": "list" },
-        "options": {
-          "range": "A5:S505",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
-      }
-    },
-    {
-      "id": "read-lancamentos",
-      "name": "Ler Lançamentos",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-420, 280],
-      "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": { "__rl": true, "value": "Lançamentos", "mode": "list" },
-        "options": {
-          "range": "A5:W505",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
-      }
-    },
-    {
-      "id": "read-dre",
-      "name": "Ler DRE",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-420, 420],
-      "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": { "__rl": true, "value": "DRE", "mode": "list" },
-        "options": {
-          "range": "A1:J40",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
-      }
-    },
-    {
-      "id": "read-fluxo",
-      "name": "Ler Fluxo de Caixa",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [-420, 560],
-      "parameters": {
-        "resource": "sheet",
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
-          "mode": "list"
-        },
-        "sheetName": { "__rl": true, "value": "Fluxo de Caixa", "mode": "list" },
-        "options": {
-          "range": "A1:F40",
-          "outputFormatting": "raw",
-          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
-        }
-      },
-      "credentials": {
-        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
-      }
-    },
-    {
-      "id": "build-snapshot",
-      "name": "Montar snapshot.json",
-      "type": "n8n-nodes-base.code",
+      "id": "if-pronto",
+      "name": "Publicação pronta?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [-140, 280],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "function parseBRL(v){\n  if (v === null || v === undefined) return null;\n  let s = String(v).trim();\n  if (s === '' || s === '-' || s === '—') return null;\n  let neg = false;\n  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1,-1); }\n  const n = parseFloat(s.replace(/[^\\d,.\\-]/g,'').replace(/\\./g,'').replace(',', '.'));\n  if (isNaN(n)) return null;\n  return neg ? -n : n;\n}\nfunction parsePct(v){\n  if (!v) return 0;\n  const n = parseFloat(String(v).replace('%','').replace(',', '.'));\n  return isNaN(n) ? 0 : n;\n}\nfunction parseInt_(v){\n  if (!v) return 0;\n  const n = parseInt(String(v).replace(/[^\\d\\-]/g,''), 10);\n  return isNaN(n) ? 0 : n;\n}\nfunction nonblank(row){ return row.filter(c => c !== '' && c !== null && c !== undefined); }\nfunction dedupe(row){\n  const out = [];\n  for (const c of row) if (out.length === 0 || out[out.length-1] !== c) out.push(c);\n  return out;\n}\nfunction clean(v){ return (v ?? '').toString().trim(); }\nfunction getRaw(nodeName){\n  const items = $('Ler ' + nodeName).all();\n  return items.map(i => Object.values(i.json));\n}\n\n// ---- Dashboard KPIs + Estoque por status ----\nconst dashRows = getRaw('Dashboard').map(r => r.map(clean));\nconst kv = {};\nfor (let i = 0; i < dashRows.length - 1; i++) {\n  const labels = nonblank(dedupe(dashRows[i]));\n  if (!labels.length) continue;\n  if (labels.some(c => /^(R\\$|-|\\d)/.test(c))) continue;\n  const values = nonblank(dedupe(dashRows[i+1]));\n  if (values.length === labels.length && JSON.stringify(values) !== JSON.stringify(labels)) {\n    labels.forEach((lab, idx) => { if (!(lab in kv)) kv[lab] = values[idx]; });\n  }\n}\nconst kpis = {\n  faturamento: parseBRL(kv['FATURAMENTO']),\n  lucroLiquido: parseBRL(kv['LUCRO LÍQUIDO']),\n  saldoCaixa: parseBRL(kv['SALDO DE CAIXA']) ?? 0,\n  capitalEstoque: parseBRL(kv['CAPITAL EM ESTOQUE']) ?? 0,\n  pecasEstoque: parseInt_(kv['PEÇAS EM ESTOQUE']),\n  margemLiquida: parsePct(kv['MARGEM LÍQUIDA']),\n  dividaSocio: parseBRL(kv['DÍVIDA COM SÓCIO']) ?? 0,\n  patrimonioBruto: parseBRL(kv['PATRIMÔNIO BRUTO']) ?? 0,\n  patrimonioLiquido: parseBRL(kv['PATRIMÔNIO LÍQUIDO']) ?? 0,\n};\n\nlet estoquePorStatus = [];\nfor (let i = 0; i < dashRows.length; i++) {\n  const nb = nonblank(dashRows[i]);\n  if (nb[0] === 'Status' && nb[1] === 'Quantidade') {\n    for (let j = i+1; j < dashRows.length; j++) {\n      const nb2 = nonblank(dashRows[j]);\n      if (nb2.length < 2) break;\n      estoquePorStatus.push({ status: nb2[0], qtd: parseInt_(nb2[1]) });\n    }\n    break;\n  }\n}\n\nlet mesAnalisado = null;\nfor (const row of dashRows) {\n  const idx = row.indexOf('Mês analisado');\n  if (idx !== -1 && row[idx+1]) { mesAnalisado = row[idx+1]; break; }\n}\n\n// ---- Relógios ----\nconst relRows = getRaw('Relógios').map(r => r.map(clean));\nconst watches = relRows.filter(r => r[0] && r[0].startsWith('TCC')).map(cells => ({\n  itemId: cells[0], marca: cells[1], modelo: cells[2], referencia: cells[3],\n  condicao: cells[4], status: cells[5], dataCompra: cells[6], dataEntrada: cells[7],\n  dataVenda: cells[8], canal: cells[9], precoAnuncio: cells[10],\n  custoCompleto: cells[11], vendaBruta: cells[12], deducoes: cells[13],\n  lucroLiquido: cells[14], margem: cells[15],\n  dias: cells[16] ? parseInt_(cells[16]) : null,\n  lote: cells[17], observacoes: cells[18],\n}));\n\n// ---- Lançamentos ----\nconst lancHeader = ['id','dataCompetencia','dataCaixa','itemId','lote','descricao','natureza',\n  'grupoDre','categoria','contraparte','conta','forma','moeda','valorOriginal','cambio','valorBRL',\n  'status','vencimento','documento','observacoes','centroCusto','tratamento','precisaoData'];\nconst lancRows = getRaw('Lançamentos').map(r => r.map(clean));\nconst lancamentos = lancRows.filter(r => r[0] && r[0].startsWith('LCT-'))\n  .map(cells => {\n    const obj = {};\n    lancHeader.forEach((h, i) => obj[h] = cells[i] ?? '');\n    return obj;\n  });\n\n// ---- DRE mensal ----\nconst dreRows = getRaw('DRE').map(r => r.map(clean));\nconst dreHeaderIdx = dreRows.findIndex(r => r[0] === 'Mês' && r[1] && r[1].startsWith('Receita'));\nconst dreMensal = (dreHeaderIdx === -1 ? [] : dreRows.slice(dreHeaderIdx + 1))\n  .filter(r => r[0] && r.length >= 9)\n  .map(row => ({\n    mes: row[0],\n    receitaBruta: parseBRL(row[1]) ?? 0,\n    deducoes: parseBRL(row[2]) ?? 0,\n    receitaLiquida: parseBRL(row[3]) ?? 0,\n    cmv: parseBRL(row[4]) ?? 0,\n    lucroBruto: parseBRL(row[5]) ?? 0,\n    despesasOp: parseBRL(row[6]) ?? 0,\n    resultadoLiquido: parseBRL(row[7]) ?? 0,\n    margemLiquida: parsePct(row[8]),\n  }));\n\n// ---- Fluxo de caixa ----\nconst fxRows = getRaw('Fluxo de Caixa').map(r => r.map(clean));\nconst fxHeaderIdx = fxRows.findIndex(r => r[0] === 'Mês' && r[1] && r[1].startsWith('Entradas'));\nconst fluxoCaixa = (fxHeaderIdx === -1 ? [] : fxRows.slice(fxHeaderIdx + 1))\n  .filter(r => r[0] && r.length >= 5)\n  .map(row => ({\n    mes: row[0],\n    entradas: parseBRL(row[1]) ?? 0,\n    saidas: parseBRL(row[2]) ?? 0,\n    saldoMes: parseBRL(row[3]) ?? 0,\n    saldoAcumulado: parseBRL(row[4]) ?? 0,\n  }));\n\nconst snapshot = {\n  updatedAt: new Date().toISOString(),\n  mesAnalisado,\n  kpis,\n  estoquePorStatus,\n  watches,\n  lancamentos,\n  dreMensal,\n  fluxoCaixa,\n};\n\nreturn [{ json: {\n  content: Buffer.from(JSON.stringify(snapshot, null, 2), 'utf-8').toString('base64'),\n  snapshot,\n} }];"
-      }
+      "position": [
+        660,
+        0
+      ]
     },
     {
-      "id": "commit-github",
-      "name": "Commit data/snapshot.json",
-      "type": "n8n-nodes-base.github",
-      "typeVersion": 1,
-      "position": [120, 280],
       "parameters": {
-        "resource": "file",
-        "operation": "edit",
-        "owner": {
-          "__rl": true,
-          "value": "panaderiapontaverde",
-          "mode": "list"
+        "method": "GET",
+        "url": "https://api.github.com/repos/panaderiapontaverde/collector-club/contents/data/snapshot.json?ref=main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
         },
-        "repository": {
-          "__rl": true,
-          "value": "collector-club",
-          "mode": "list"
-        },
-        "filePath": "data/snapshot.json",
-        "branch": "main",
-        "fileContent": "={{$json.content}}",
-        "commitMessage": "=Atualiza snapshot do dashboard — {{$now.format('yyyy-MM-dd HH:mm')}}",
-        "binaryData": false,
-        "additionalParameters": {}
+        "options": {}
       },
-      "credentials": {
-        "githubApi": {
-          "id": "",
-          "name": "GitHub - collector-club"
-        }
-      }
+      "id": "gh-sha",
+      "name": "Buscar sha atual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "A API contents exige o sha do arquivo pra sobrescrever. Se o arquivo não existir ainda, isto devolve 404 — daí o onError continueRegularOutput: o próximo nó omite o sha e o PUT vira um create em vez de estourar."
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://api.github.com/repos/panaderiapontaverde/collector-club/contents/data/snapshot.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ message: 'Atualiza snapshot do dashboard — ' + $now.toFormat('yyyy-MM-dd HH:mm'), content: $('Montar snapshot').first().json.contentB64, branch: 'main' }, $json.sha ? { sha: $json.sha } : {})) }}",
+        "options": {}
+      },
+      "id": "gh-put",
+      "name": "Commit data/snapshot.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "notes": "API crua do GitHub: o campo content vai em base64, codificado no nó Montar snapshot. (O nó nativo do GitHub codifica sozinho — mandar base64 pra ele geraria base64 duplo e um arquivo ilegível.)"
     }
   ],
   "connections": {
-    "Trigger - Lançamentos atualizado": {
-      "main": [[{ "node": "Ler Checks", "type": "main", "index": 0 }]]
+    "Trigger — Lançamentos atualizado": {
+      "main": [
+        [
+          {
+            "node": "Ler planilha (batchGet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Ler Checks": {
-      "main": [[{ "node": "Verificar STATUS GERAL", "type": "main", "index": 0 }]]
+    "Ler planilha (batchGet)": {
+      "main": [
+        [
+          {
+            "node": "Montar snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Verificar STATUS GERAL": {
-      "main": [[{ "node": "Publicação pronta?", "type": "main", "index": 0 }]]
+    "Montar snapshot": {
+      "main": [
+        [
+          {
+            "node": "Publicação pronta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Publicação pronta?": {
       "main": [
         [
-          { "node": "Ler Dashboard", "type": "main", "index": 0 },
-          { "node": "Ler Relógios", "type": "main", "index": 0 },
-          { "node": "Ler Lançamentos", "type": "main", "index": 0 },
-          { "node": "Ler DRE", "type": "main", "index": 0 },
-          { "node": "Ler Fluxo de Caixa", "type": "main", "index": 0 }
-        ]
+          {
+            "node": "Buscar sha atual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
-    "Ler Dashboard": {
-      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
-    },
-    "Ler Relógios": {
-      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
-    },
-    "Ler Lançamentos": {
-      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
-    },
-    "Ler DRE": {
-      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
-    },
-    "Ler Fluxo de Caixa": {
-      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
-    },
-    "Montar snapshot.json": {
-      "main": [[{ "node": "Commit data/snapshot.json", "type": "main", "index": 0 }]]
+    "Buscar sha atual": {
+      "main": [
+        [
+          {
+            "node": "Commit data/snapshot.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -314,7 +229,5 @@
     "executionOrder": "v1"
   },
   "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": false
-  }
+  "meta": {}
 }

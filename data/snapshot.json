@@ -1,0 +1,20 @@
+{
+  "updatedAt": "2026-09-09T20:46:42.544159Z",
+  "mesAnalisado": null,
+  "kpis": {
+    "faturamento": null,
+    "lucroLiquido": null,
+    "saldoCaixa": 0,
+    "capitalEstoque": 0,
+    "pecasEstoque": 0,
+    "margemLiquida": 0,
+    "dividaSocio": 0,
+    "patrimonioBruto": 0,
+    "patrimonioLiquido": 0
+  },
+  "estoquePorStatus": [],
+  "watches": [],
+  "lancamentos": [],
+  "dreMensal": [],
+  "fluxoCaixa": []
+}
