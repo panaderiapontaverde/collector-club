@@ -1,0 +1,320 @@
+{
+  "name": "Collector Club -> GitHub snapshot",
+  "nodes": [
+    {
+      "id": "trigger-node",
+      "name": "Trigger - Lançamentos atualizado",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [-1400, 300],
+      "parameters": {
+        "event": "rowUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Lançamentos",
+          "mode": "list"
+        },
+        "pollTimes": {
+          "item": [
+            { "mode": "everyX", "value": 10, "unit": "minutes" }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets - Collector Club"
+        }
+      }
+    },
+    {
+      "id": "read-checks",
+      "name": "Ler Checks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-1160, 300],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Checks",
+          "mode": "list"
+        },
+        "options": {
+          "range": "A1:G20",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": {
+            "values": { "rangeDefinition": "specifyRangeA1" }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets - Collector Club"
+        }
+      }
+    },
+    {
+      "id": "check-status",
+      "name": "Verificar STATUS GERAL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-920, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst rows = items.map(i => Object.values(i.json));\nlet pronto = false;\nfor (const row of rows) {\n  const cells = row.map(c => (c ?? '').toString().trim());\n  if (cells[0] === 'STATUS GERAL') {\n    const statusCell = cells.find((c, i) => i > 0 && c !== '');\n    pronto = statusCell === 'OK';\n    break;\n  }\n}\nreturn [{ json: { pronto } }];"
+      }
+    },
+    {
+      "id": "if-pronto",
+      "name": "Publicação pronta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-680, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-pronto",
+              "leftValue": "={{$json.pronto}}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "read-dashboard",
+      "name": "Ler Dashboard",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-420, 0],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": { "__rl": true, "value": "Dashboard", "mode": "list" },
+        "options": {
+          "range": "A1:H50",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
+      }
+    },
+    {
+      "id": "read-relogios",
+      "name": "Ler Relógios",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-420, 140],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": { "__rl": true, "value": "Relógios", "mode": "list" },
+        "options": {
+          "range": "A5:S505",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
+      }
+    },
+    {
+      "id": "read-lancamentos",
+      "name": "Ler Lançamentos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-420, 280],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": { "__rl": true, "value": "Lançamentos", "mode": "list" },
+        "options": {
+          "range": "A5:W505",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
+      }
+    },
+    {
+      "id": "read-dre",
+      "name": "Ler DRE",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-420, 420],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": { "__rl": true, "value": "DRE", "mode": "list" },
+        "options": {
+          "range": "A1:J40",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
+      }
+    },
+    {
+      "id": "read-fluxo",
+      "name": "Ler Fluxo de Caixa",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-420, 560],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "COLOQUE_AQUI_O_ID_DA_PLANILHA",
+          "mode": "list"
+        },
+        "sheetName": { "__rl": true, "value": "Fluxo de Caixa", "mode": "list" },
+        "options": {
+          "range": "A1:F40",
+          "outputFormatting": "raw",
+          "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1" } }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "", "name": "Google Sheets - Collector Club" }
+      }
+    },
+    {
+      "id": "build-snapshot",
+      "name": "Montar snapshot.json",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-140, 280],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function parseBRL(v){\n  if (v === null || v === undefined) return null;\n  let s = String(v).trim();\n  if (s === '' || s === '-' || s === '—') return null;\n  let neg = false;\n  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1,-1); }\n  const n = parseFloat(s.replace(/[^\\d,.\\-]/g,'').replace(/\\./g,'').replace(',', '.'));\n  if (isNaN(n)) return null;\n  return neg ? -n : n;\n}\nfunction parsePct(v){\n  if (!v) return 0;\n  const n = parseFloat(String(v).replace('%','').replace(',', '.'));\n  return isNaN(n) ? 0 : n;\n}\nfunction parseInt_(v){\n  if (!v) return 0;\n  const n = parseInt(String(v).replace(/[^\\d\\-]/g,''), 10);\n  return isNaN(n) ? 0 : n;\n}\nfunction nonblank(row){ return row.filter(c => c !== '' && c !== null && c !== undefined); }\nfunction dedupe(row){\n  const out = [];\n  for (const c of row) if (out.length === 0 || out[out.length-1] !== c) out.push(c);\n  return out;\n}\nfunction clean(v){ return (v ?? '').toString().trim(); }\nfunction getRaw(nodeName){\n  const items = $('Ler ' + nodeName).all();\n  return items.map(i => Object.values(i.json));\n}\n\n// ---- Dashboard KPIs + Estoque por status ----\nconst dashRows = getRaw('Dashboard').map(r => r.map(clean));\nconst kv = {};\nfor (let i = 0; i < dashRows.length - 1; i++) {\n  const labels = nonblank(dedupe(dashRows[i]));\n  if (!labels.length) continue;\n  if (labels.some(c => /^(R\\$|-|\\d)/.test(c))) continue;\n  const values = nonblank(dedupe(dashRows[i+1]));\n  if (values.length === labels.length && JSON.stringify(values) !== JSON.stringify(labels)) {\n    labels.forEach((lab, idx) => { if (!(lab in kv)) kv[lab] = values[idx]; });\n  }\n}\nconst kpis = {\n  faturamento: parseBRL(kv['FATURAMENTO']),\n  lucroLiquido: parseBRL(kv['LUCRO LÍQUIDO']),\n  saldoCaixa: parseBRL(kv['SALDO DE CAIXA']) ?? 0,\n  capitalEstoque: parseBRL(kv['CAPITAL EM ESTOQUE']) ?? 0,\n  pecasEstoque: parseInt_(kv['PEÇAS EM ESTOQUE']),\n  margemLiquida: parsePct(kv['MARGEM LÍQUIDA']),\n  dividaSocio: parseBRL(kv['DÍVIDA COM SÓCIO']) ?? 0,\n  patrimonioBruto: parseBRL(kv['PATRIMÔNIO BRUTO']) ?? 0,\n  patrimonioLiquido: parseBRL(kv['PATRIMÔNIO LÍQUIDO']) ?? 0,\n};\n\nlet estoquePorStatus = [];\nfor (let i = 0; i < dashRows.length; i++) {\n  const nb = nonblank(dashRows[i]);\n  if (nb[0] === 'Status' && nb[1] === 'Quantidade') {\n    for (let j = i+1; j < dashRows.length; j++) {\n      const nb2 = nonblank(dashRows[j]);\n      if (nb2.length < 2) break;\n      estoquePorStatus.push({ status: nb2[0], qtd: parseInt_(nb2[1]) });\n    }\n    break;\n  }\n}\n\nlet mesAnalisado = null;\nfor (const row of dashRows) {\n  const idx = row.indexOf('Mês analisado');\n  if (idx !== -1 && row[idx+1]) { mesAnalisado = row[idx+1]; break; }\n}\n\n// ---- Relógios ----\nconst relRows = getRaw('Relógios').map(r => r.map(clean));\nconst watches = relRows.filter(r => r[0] && r[0].startsWith('TCC')).map(cells => ({\n  itemId: cells[0], marca: cells[1], modelo: cells[2], referencia: cells[3],\n  condicao: cells[4], status: cells[5], dataCompra: cells[6], dataEntrada: cells[7],\n  dataVenda: cells[8], canal: cells[9], precoAnuncio: cells[10],\n  custoCompleto: cells[11], vendaBruta: cells[12], deducoes: cells[13],\n  lucroLiquido: cells[14], margem: cells[15],\n  dias: cells[16] ? parseInt_(cells[16]) : null,\n  lote: cells[17], observacoes: cells[18],\n}));\n\n// ---- Lançamentos ----\nconst lancHeader = ['id','dataCompetencia','dataCaixa','itemId','lote','descricao','natureza',\n  'grupoDre','categoria','contraparte','conta','forma','moeda','valorOriginal','cambio','valorBRL',\n  'status','vencimento','documento','observacoes','centroCusto','tratamento','precisaoData'];\nconst lancRows = getRaw('Lançamentos').map(r => r.map(clean));\nconst lancamentos = lancRows.filter(r => r[0] && r[0].startsWith('LCT-'))\n  .map(cells => {\n    const obj = {};\n    lancHeader.forEach((h, i) => obj[h] = cells[i] ?? '');\n    return obj;\n  });\n\n// ---- DRE mensal ----\nconst dreRows = getRaw('DRE').map(r => r.map(clean));\nconst dreHeaderIdx = dreRows.findIndex(r => r[0] === 'Mês' && r[1] && r[1].startsWith('Receita'));\nconst dreMensal = (dreHeaderIdx === -1 ? [] : dreRows.slice(dreHeaderIdx + 1))\n  .filter(r => r[0] && r.length >= 9)\n  .map(row => ({\n    mes: row[0],\n    receitaBruta: parseBRL(row[1]) ?? 0,\n    deducoes: parseBRL(row[2]) ?? 0,\n    receitaLiquida: parseBRL(row[3]) ?? 0,\n    cmv: parseBRL(row[4]) ?? 0,\n    lucroBruto: parseBRL(row[5]) ?? 0,\n    despesasOp: parseBRL(row[6]) ?? 0,\n    resultadoLiquido: parseBRL(row[7]) ?? 0,\n    margemLiquida: parsePct(row[8]),\n  }));\n\n// ---- Fluxo de caixa ----\nconst fxRows = getRaw('Fluxo de Caixa').map(r => r.map(clean));\nconst fxHeaderIdx = fxRows.findIndex(r => r[0] === 'Mês' && r[1] && r[1].startsWith('Entradas'));\nconst fluxoCaixa = (fxHeaderIdx === -1 ? [] : fxRows.slice(fxHeaderIdx + 1))\n  .filter(r => r[0] && r.length >= 5)\n  .map(row => ({\n    mes: row[0],\n    entradas: parseBRL(row[1]) ?? 0,\n    saidas: parseBRL(row[2]) ?? 0,\n    saldoMes: parseBRL(row[3]) ?? 0,\n    saldoAcumulado: parseBRL(row[4]) ?? 0,\n  }));\n\nconst snapshot = {\n  updatedAt: new Date().toISOString(),\n  mesAnalisado,\n  kpis,\n  estoquePorStatus,\n  watches,\n  lancamentos,\n  dreMensal,\n  fluxoCaixa,\n};\n\nreturn [{ json: {\n  content: Buffer.from(JSON.stringify(snapshot, null, 2), 'utf-8').toString('base64'),\n  snapshot,\n} }];"
+      }
+    },
+    {
+      "id": "commit-github",
+      "name": "Commit data/snapshot.json",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [120, 280],
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "panaderiapontaverde",
+          "mode": "list"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "collector-club",
+          "mode": "list"
+        },
+        "filePath": "data/snapshot.json",
+        "branch": "main",
+        "fileContent": "={{$json.content}}",
+        "commitMessage": "=Atualiza snapshot do dashboard — {{$now.format('yyyy-MM-dd HH:mm')}}",
+        "binaryData": false,
+        "additionalParameters": {}
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub - collector-club"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Trigger - Lançamentos atualizado": {
+      "main": [[{ "node": "Ler Checks", "type": "main", "index": 0 }]]
+    },
+    "Ler Checks": {
+      "main": [[{ "node": "Verificar STATUS GERAL", "type": "main", "index": 0 }]]
+    },
+    "Verificar STATUS GERAL": {
+      "main": [[{ "node": "Publicação pronta?", "type": "main", "index": 0 }]]
+    },
+    "Publicação pronta?": {
+      "main": [
+        [
+          { "node": "Ler Dashboard", "type": "main", "index": 0 },
+          { "node": "Ler Relógios", "type": "main", "index": 0 },
+          { "node": "Ler Lançamentos", "type": "main", "index": 0 },
+          { "node": "Ler DRE", "type": "main", "index": 0 },
+          { "node": "Ler Fluxo de Caixa", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Ler Dashboard": {
+      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
+    },
+    "Ler Relógios": {
+      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
+    },
+    "Ler Lançamentos": {
+      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
+    },
+    "Ler DRE": {
+      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
+    },
+    "Ler Fluxo de Caixa": {
+      "main": [[{ "node": "Montar snapshot.json", "type": "main", "index": 0 }]]
+    },
+    "Montar snapshot.json": {
+      "main": [[{ "node": "Commit data/snapshot.json", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
