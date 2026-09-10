@@ -1,16 +1,16 @@
 {
-  "updatedAt": "2026-09-10T12:42:09.685Z",
+  "updatedAt": "2026-09-10T12:50:39.260Z",
   "mesAnalisado": "setembro/2026",
   "kpis": {
     "faturamento": null,
     "lucroLiquido": null,
     "saldoCaixa": 3714.21,
-    "capitalEstoque": 19851.23,
+    "capitalEstoque": 21479.42,
     "pecasEstoque": 7,
     "margemLiquida": 0,
     "dividaSocio": 20000,
-    "patrimonioBruto": 23565.44,
-    "patrimonioLiquido": 3565.44
+    "patrimonioBruto": 25193.63,
+    "patrimonioLiquido": 5193.63
   },
   "estoquePorStatus": [
     {
@@ -135,9 +135,9 @@
       "dataVenda": "",
       "canal": "",
       "precoAnuncio": "",
-      "custoCompleto": "R$ 732,01",
+      "custoCompleto": "R$ 2.360,20",
       "vendaBruta": "-",
-      "deducoes": "R$ 1.628,19",
+      "deducoes": "-",
       "lucroLiquido": "",
       "margem": "",
       "dias": 10,
@@ -692,7 +692,7 @@
       "lote": "LOTE-002",
       "descricao": "Compra — Seiko SBDL085 / SSC813P1 — 2º exemplar",
       "natureza": "Saída",
-      "grupoDre": "Dedução de vendas",
+      "grupoDre": "Custo do estoque",
       "categoria": "Compra do item",
       "contraparte": "Marketplace Japão",
       "conta": "Banco",
@@ -1366,13 +1366,13 @@
     {
       "mes": "ago./2026",
       "receitaBruta": 4650,
-      "deducoes": 1628.19,
-      "receitaLiquida": 3021.81,
+      "deducoes": 0,
+      "receitaLiquida": 4650,
       "cmv": 3104.32,
-      "lucroBruto": -82.51,
+      "lucroBruto": 1545.68,
       "despesasOp": 0,
-      "resultadoLiquido": -82.51,
-      "margemLiquida": -1.8
+      "resultadoLiquido": 1545.68,
+      "margemLiquida": 33.2
     },
     {
       "mes": "set./2026",
