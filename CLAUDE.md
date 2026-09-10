@@ -45,7 +45,7 @@ Repositório do projeto "The Collector Club" (operação de compra e venda de re
 
 Workflow pronto pra importar: [`collector-club-n8n-workflow.json`](collector-club-n8n-workflow.json). Seis nós:
 
-1. **Trigger — Lançamentos atualizado** (`googleSheetsTrigger`, `rowUpdate`, poll a cada 10 min).
+1. **Trigger — Lançamentos atualizado** (`googleSheetsTrigger`, **`anyUpdate`**, poll a cada 10 min). Tem que ser "Row Added or Updated": lançamento novo é linha *acrescentada*, e `rowUpdate` sozinho só enxerga alteração em linha existente — o fluxo não disparava por isso.
 2. **Ler planilha (batchGet)** — um único HTTP Request no `spreadsheets.values:batchGet` trazendo as 6 abas (Checks, Dashboard, Relógios, Lançamentos, DRE, Fluxo de Caixa) como arrays de célula crus.
 3. **Montar snapshot** (Code) — confere o `STATUS GERAL` da aba Checks e monta o `snapshot.json` no schema acima, devolvendo o conteúdo já em base64.
 4. **Publicação pronta?** (IF) — só segue se `STATUS GERAL = OK`.
@@ -65,9 +65,17 @@ Workflow pronto pra importar: [`collector-club-n8n-workflow.json`](collector-clu
 | Ler planilha (batchGet) | `googleSheetsOAuth2Api` — **é um registro separado do usado pelo trigger** |
 | Buscar sha / Commit | `githubApi` (PAT com escopo de escrita em `contents` deste repo) |
 
-Trocar `COLOQUE_AQUI_O_ID_DA_PLANILHA` pelo ID real da planilha em dois lugares: no `documentId` do trigger e na URL do batchGet.
+O ID da planilha (`1GN251Lcp8mP8fqITpxXLpXL-864Lvio8WYwEkgdEvvs`) já está preenchido no `documentId` do trigger e na URL do batchGet.
 
-O parsing (moeda BRL, negativo entre parênteses, percentual com vírgula, linhas raggeds do batchGet) foi testado contra um fixture representativo — KPIs, relógios, lançamentos, DRE e fluxo saem corretos. O que **não** foi testado ainda é o workflow rodando contra a planilha real.
+### Layout do Dashboard (não estreitar o range)
+
+O Dashboard tem **12 colunas**. Os KPIs vivem em três blocos de células mescladas de 3 colunas: A-C, E-G e I-K. Um range `A1:H50` corta fora o terceiro bloco inteiro — `SALDO DE CAIXA`, `MARGEM LÍQUIDA` e `PATRIMÔNIO LÍQUIDO` viram zero em silêncio, sem erro nenhum. Por isso o range é `Dashboard!A1:L50`.
+
+Os rótulos são casados por chave normalizada (sem acento, caixa alta), não por texto literal, porque o Sheets pode devolver a forma decomposta do acento ou espaço não-quebrável. O `resumo` do nó traz `rotulosDashboard` justamente pra diagnosticar isso quando um KPI vier zerado.
+
+`faturamento` e `lucroLiquido` como `null` são **corretos** quando a planilha traz `-` nessas células — não é falha de parsing.
+
+O pipeline rodou ponta a ponta contra a planilha real em 2026-09-10 (commit `0df92f3`): 8 relógios, 43 lançamentos, 24 meses de DRE e 24 de fluxo, todos corretos. Essa primeira execução expôs o range estreito do Dashboard, já corrigido.
 
 ## Decisões já tomadas (não reabrir sem necessidade)
 
@@ -80,8 +88,11 @@ O parsing (moeda BRL, negativo entre parênteses, percentual com vírgula, linha
 
 ## Próximos passos
 
-- [ ] Importar `collector-club-n8n-workflow.json` no n8n, preencher o ID da planilha (2 lugares) e ligar as 3 credenciais.
-- [ ] Rodar uma vez com o botão de teste e conferir o `resumo` do nó "Montar snapshot" (contagem de relógios/lançamentos/meses) antes de deixar comitar.
+- [x] Importar o workflow, preencher o ID da planilha e ligar as 3 credenciais.
+- [x] Primeira execução ponta a ponta, com commit em `data/snapshot.json`.
+- [ ] Reimportar o workflow corrigido (range do Dashboard + trigger `anyUpdate`) e rodar de novo; conferir no `resumo` que os 9 KPIs vieram preenchidos.
+- [ ] Conferir se a acentuação saiu correta no snapshot (`Em trânsito`, não `Em trÃ¢nsito`). O Code node já repara mojibake na leitura, mas a origem do problema ainda não foi confirmada.
 - [ ] Desligar a Deployment Protection na Vercel — sem isso o painel não abre pro João.
-- [ ] Ativar o workflow (`active: true`) depois de validado ponta a ponta.
-- [ ] Opcional: linkar o projeto da Vercel a este repositório GitHub, pra o `index.html` fazer deploy automático a cada push em vez de upload manual.
+- [ ] Ativar o workflow (`active: true`).
+- [ ] Avaliar troca do Google Sheets Trigger por Schedule Trigger + comparação de conteúdo: some o furo da correção que fica esperando a próxima edição, e evita commit sem mudança.
+- [ ] Opcional: linkar o projeto da Vercel a este repositório GitHub.
