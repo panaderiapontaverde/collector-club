@@ -5,7 +5,8 @@ Repositório do projeto "The Collector Club" (operação de compra e venda de re
 ## O que já existe
 
 - **Site em produção:** https://collector-club-grupo-cavalcante.vercel.app
-  - Publicado direto na Vercel (projeto `collector-club`, team `grupo-cavalcante`) a partir do `index.html` deste repositório, via upload de arquivo (não está linkado ao GitHub na Vercel ainda — ver "Próximos passos").
+  - Publicado na Vercel (projeto `collector-club`, team `grupo-cavalcante`) a partir do `index.html` deste repositório. **O projeto está ligado ao GitHub** (confirmado pelo João em 2026-09-11): push na `main` redeploya sozinho, sem upload manual.
+  - **O conector da Vercel disponível ao Claude não enxerga este projeto.** `list_projects` no time `grupo-cavalcante` volta vazio e `get_project` dá 404, embora a URL responda — o conector está autenticado numa conta que não é dona do projeto. Consequência prática: o Claude não consegue ler logs, redeployar nem mexer em Settings. Não tente criar projeto novo pra contornar: `create_git_project` não reconecta projeto existente, criaria um segundo deploy e uma segunda URL.
   - Página estática única (`index.html`), sem build step, sem framework.
   - Busca os dados em `https://raw.githubusercontent.com/panaderiapontaverde/collector-club/main/data/snapshot.json` a cada carregamento e a cada 5 min (`setInterval`).
   - Cache em `localStorage` (`collector-club-snapshot-cache`) como fallback se o GitHub estiver fora do ar — mostra um banner "dados podem estar desatualizados" nesse caso.
@@ -104,4 +105,3 @@ O pipeline rodou ponta a ponta contra a planilha real em 2026-09-10 (commit `0df
 - [ ] Desligar a Deployment Protection na Vercel — sem isso o painel não abre pro João.
 - [ ] Ativar o workflow (`active: true`).
 - [ ] Avaliar troca do Google Sheets Trigger por Schedule Trigger + comparação de conteúdo: some o furo da correção que fica esperando a próxima edição, e evita commit sem mudança.
-- [ ] Opcional: linkar o projeto da Vercel a este repositório GitHub.
