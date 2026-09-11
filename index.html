@@ -362,17 +362,44 @@
       </li>`).join('');
   }
 
+  const MESES_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  // "ago./2026" -> 24320, um indice continuo de meses, pra dar pra ordenar e
+  // comparar com hoje. Devolve null se nao reconhecer o formato.
+  function indiceDoMes(rotulo){
+    const p = String(rotulo || '').toLowerCase().replace(/\./g, '').split('/');
+    if (p.length !== 2) return null;
+    const m = MESES_PT.indexOf(p[0].trim().slice(0,3));
+    const ano = parseInt(p[1], 10);
+    return (m === -1 || isNaN(ano)) ? null : ano * 12 + m;
+  }
+
   function renderChart(dreFull){
     const w = 640, h = 200, padL = 46, padB = 26, padT = 10, padR = 10;
-    const dre = dreFull.slice(-12); // últimos 12 meses
-    const months = dre.map(d => d.mes.replace('./', '/'));
+    // A aba DRE e uma grade fixa de 24 meses que vai ate dez/2027, entao pegar
+    // as ultimas 12 linhas do array caia sempre no futuro vazio. Filtra pelos
+    // meses que ja aconteceram e so entao corta os 12 ultimos.
+    const limite = new Date();
+    const ate = limite.getFullYear() * 12 + limite.getMonth();
+    const passados = dreFull.filter(d => {
+      const i = indiceDoMes(d.mes);
+      return i !== null && i <= ate;
+    });
+    // Se o rotulo mudar de formato e nada casar, volta ao comportamento antigo
+    // em vez de mostrar um grafico vazio.
+    const dre = (passados.length ? passados : dreFull).slice(-12);
+    // Ano com 2 digitos: com 12 barras em 640px os rotulos de 4 digitos se
+    // encostam uns nos outros.
+    const months = dre.map(d => String(d.mes).replace('./', '/').replace(/\/(\d{2})(\d{2})$/, '/$2'));
     const values = dre.map(d => d.resultadoLiquido || 0);
-    const maxV = Math.max(10, ...values.map(v => Math.abs(v)));
     const plotW = w - padL - padR, plotH = h - padT - padB;
     const bw = plotW / values.length * 0.6;
     const gap = plotW / values.length;
-    const zeroY = padT + plotH * (maxV / (maxV*2)) ; // zero at middle since values can't go negative here but keep generic
-    const yFor = v => padT + plotH - (v / maxV) * plotH;
+    // Escala do minimo ao maximo, incluindo o zero: mes com prejuizo desenha
+    // pra baixo da linha em vez de sair da area do grafico.
+    const maxV = Math.max(0, ...values);
+    const minV = Math.min(0, ...values);
+    const span = Math.max(10, maxV - minV);
+    const yFor = v => padT + plotH - ((v - minV) / span) * plotH;
     let bars = '';
     values.forEach((v,i) => {
       const x = padL + i*gap + (gap-bw)/2;
