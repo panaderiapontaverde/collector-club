@@ -1,0 +1,6 @@
+# Planilhas com dados financeiros reais do cliente. O repositorio e PUBLICO:
+# um `git add -A` distraido ja publicou a Controle Financeiro Simples uma vez.
+*.xlsx
+*.xls
+*.csv
+*.tsv
