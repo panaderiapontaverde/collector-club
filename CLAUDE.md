@@ -75,6 +75,16 @@ Os rótulos são casados por chave normalizada (sem acento, caixa alta), não po
 
 `faturamento` e `lucroLiquido` como `null` são **corretos** quando a planilha traz `-` nessas células — não é falha de parsing.
 
+### Acentuação: não há problema (não "consertar")
+
+O snapshot sempre saiu em UTF-8 correto — `Em trânsito` grava os bytes `C3 A2`, e a
+forma duplo-codificada nunca apareceu no arquivo, nem no primeiro commit.
+
+Se alguma inspeção sugerir mojibake, suspeite primeiro da ferramenta: num terminal
+Windows, `curl ... | python -c "json.load(sys.stdin)"` lê o stdin com a codificação do
+console (cp1252) e **produz** o mojibake na leitura. Para inspecionar de verdade, baixe
+para arquivo e abra com `encoding='utf-8'` explícito, ou compare os bytes crus.
+
 O pipeline rodou ponta a ponta contra a planilha real em 2026-09-10 (commit `0df92f3`): 8 relógios, 43 lançamentos, 24 meses de DRE e 24 de fluxo, todos corretos. Essa primeira execução expôs o range estreito do Dashboard, já corrigido.
 
 ## Decisões já tomadas (não reabrir sem necessidade)
@@ -90,8 +100,7 @@ O pipeline rodou ponta a ponta contra a planilha real em 2026-09-10 (commit `0df
 
 - [x] Importar o workflow, preencher o ID da planilha e ligar as 3 credenciais.
 - [x] Primeira execução ponta a ponta, com commit em `data/snapshot.json`.
-- [ ] Reimportar o workflow corrigido (range do Dashboard + trigger `anyUpdate`) e rodar de novo; conferir no `resumo` que os 9 KPIs vieram preenchidos.
-- [ ] Conferir se a acentuação saiu correta no snapshot (`Em trânsito`, não `Em trÃ¢nsito`). O Code node já repara mojibake na leitura, mas a origem do problema ainda não foi confirmada.
+- [x] Reimportar o workflow corrigido e rodar: os 9 KPIs vieram preenchidos (`saldoCaixa` R$ 3.714,21, `patrimonioLiquido` R$ 5.193,63, `mesAnalisado` setembro/2026).
 - [ ] Desligar a Deployment Protection na Vercel — sem isso o painel não abre pro João.
 - [ ] Ativar o workflow (`active: true`).
 - [ ] Avaliar troca do Google Sheets Trigger por Schedule Trigger + comparação de conteúdo: some o furo da correção que fica esperando a próxima edição, e evita commit sem mudança.
