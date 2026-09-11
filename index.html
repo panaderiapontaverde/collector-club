@@ -153,7 +153,33 @@
   .panel{display:none;}
   .panel.active{display:block;}
 
-  .table-scroll{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:var(--shadow);}
+  .table-scroll{
+    overflow-x:auto; border:1px solid var(--border); border-radius:12px;
+    background:var(--surface); box-shadow:var(--shadow);
+    /* Sem isso o Windows desenha a barra clássica do sistema — clara, grossa e
+       com setas nas pontas — dentro de um card escuro. As cores saem de --muted
+       em vez de tokens próprios pra acompanhar o tema sozinhas. */
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+    scrollbar-color:var(--border) transparent;
+    scrollbar-color:color-mix(in srgb, var(--muted) 38%, transparent) transparent;
+  }
+  .table-scroll::-webkit-scrollbar{ height:10px; }
+  .table-scroll::-webkit-scrollbar-track{ background:transparent; }
+  .table-scroll::-webkit-scrollbar-button{ display:none; width:0; height:0; }
+  .table-scroll::-webkit-scrollbar-thumb{
+    background:var(--border);
+    background:color-mix(in srgb, var(--muted) 38%, transparent);
+    border-radius:100px;
+    /* A borda transparente com background-clip afina o polegar e o afasta da
+       borda arredondada do card, em vez de ele encostar nos cantos. */
+    border:3px solid transparent;
+    background-clip:padding-box;
+  }
+  .table-scroll:hover::-webkit-scrollbar-thumb{
+    background:color-mix(in srgb, var(--muted) 62%, transparent);
+    background-clip:padding-box;
+  }
   table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px;}
   thead th{
     position:sticky; top:0; background:var(--surface-2); text-align:left;
