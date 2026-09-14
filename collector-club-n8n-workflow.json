@@ -2,38 +2,37 @@
   "name": "Collector Club — snapshot para o GitHub",
   "nodes": [
     {
-      "parameters": {
-        "pollTimes": {
-          "item": [
-            {
-              "mode": "everyX",
-              "value": 10,
-              "unit": "minutes"
-            }
-          ]
-        },
-        "documentId": {
-          "__rl": true,
-          "value": "1Y2lnqYZdzThhyVAoL5O3FCgNPrX1LZcmF4B15M2UMdU",
-          "mode": "id"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "Caixa",
-          "mode": "name"
-        },
-        "event": "anyUpdate",
-        "options": {}
-      },
-      "id": "trg-caixa",
-      "name": "Trigger - Caixa atualizado",
-      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "parameters": {},
+      "id": "trg-manual",
+      "name": "Executar agora",
+      "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
         0,
-        0
+        -140
       ],
-      "notes": "anyUpdate: lancamento novo e linha ACRESCENTADA. Com rowUpdate sozinho o fluxo praticamente nunca dispara."
+      "notes": "Para rodar na hora, sem esperar o Schedule nem editar a planilha. Use este botao depois de importar o workflow."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "trg-cron",
+      "name": "A cada 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        40
+      ],
+      "notes": "Substitui o Google Sheets Trigger. Aquele so disparava se detectasse edicao de linha: perdia correcao feita enquanto o dado estava ruim, exigia workflow ativo E edicao na aba, e nao rodava nunca apos importar. O Schedule apenas le a planilha de tempos em tempos; o no \"Mudou?\" evita commit quando nada mudou."
     },
     {
       "parameters": {
@@ -49,9 +48,9 @@
       "typeVersion": 4.2,
       "position": [
         220,
-        0
+        -50
       ],
-      "notes": "Pergunta a planilha quais abas existem, em vez de cravar os nomes no workflow. Aba renomeada ou acrescentada deixa de quebrar o fluxo."
+      "notes": "Pergunta a planilha quais abas existem, em vez de cravar os nomes."
     },
     {
       "parameters": {
@@ -67,9 +66,9 @@
       "typeVersion": 4.2,
       "position": [
         440,
-        0
+        -50
       ],
-      "notes": "Os ranges vao montados na URL, NAO em queryParameters. O n8n monta os parametros de query como objeto, entao cinco entradas chamadas \"ranges\" se sobrescrevem e so a ultima e enviada -- foi assim que o snapshot saiu vazio em 14/09/2026. Range sem A1 significa a aba inteira."
+      "notes": "Os ranges vao montados na URL, NAO em queryParameters: o n8n monta a query como objeto, entao entradas repetidas chamadas \"ranges\" se sobrescrevem e so a ultima e enviada -- foi assim que o snapshot saiu vazio em 14/09/2026. Range sem A1 significa a aba inteira."
     },
     {
       "parameters": {
@@ -82,7 +81,7 @@
       "typeVersion": 2,
       "position": [
         660,
-        0
+        -50
       ]
     },
     {
@@ -103,15 +102,63 @@
         "options": {}
       },
       "id": "gh-sha",
-      "name": "Buscar sha atual",
+      "name": "Buscar snapshot atual",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         880,
-        0
+        -50
       ],
       "onError": "continueRegularOutput",
-      "notes": "A API contents exige o sha pra sobrescrever. Se o arquivo nao existir, isto da 404 e o onError deixa seguir: o PUT vira um create."
+      "notes": "Traz o sha (necessario pra sobrescrever) e o conteudo atual (usado na comparacao). 404 se o arquivo nao existir: o onError deixa seguir e o PUT vira um create."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Decide se vale a pena comitar. Roda depois do GET /contents, que devolve o\n// snapshot que ja esta no GitHub (campo `content`, base64) e o `sha`.\n//\n// Sem esta comparacao, um Schedule a cada 15 minutos geraria ~100 commits por\n// dia identicos entre si. Com ela, so commita quando algo mudou de verdade.\n//\n// `updatedAt` e ignorado na comparacao de proposito: ele muda a cada execucao,\n// entao compara-lo faria todo snapshot parecer diferente e anularia o efeito.\n\nconst novo = $('Montar snapshot').first().json;\nconst resposta = $input.first().json || {};\n\nfunction semCarimbo(obj) {\n  const copia = Object.assign({}, obj);\n  delete copia.updatedAt;\n  return JSON.stringify(copia);\n}\n\nlet atualTexto = null;\nif (resposta.content) {\n  try {\n    // A API quebra o base64 em linhas; Buffer ignora o \\n, mas limpamos assim\n    // mesmo para nao depender desse detalhe.\n    atualTexto = Buffer.from(String(resposta.content).replace(/\\s/g, ''), 'base64')\n      .toString('utf-8');\n  } catch (e) {\n    atualTexto = null;\n  }\n}\n\nlet mudou = true;\nlet motivo = 'nao havia snapshot anterior legivel';\nif (atualTexto) {\n  try {\n    const atual = JSON.parse(atualTexto);\n    const novoObj = JSON.parse(Buffer.from(novo.contentB64, 'base64').toString('utf-8'));\n    if (semCarimbo(atual) === semCarimbo(novoObj)) {\n      mudou = false;\n      motivo = 'conteudo identico ao que ja esta no GitHub';\n    } else {\n      motivo = 'conteudo diferente do que esta no GitHub';\n    }\n  } catch (e) {\n    motivo = 'snapshot anterior nao era JSON valido: ' + e.message;\n  }\n}\n\nreturn [{\n  json: {\n    mudou: mudou,\n    motivo: motivo,\n    sha: resposta.sha || null,\n    contentB64: novo.contentB64,\n    resumo: novo.resumo,\n  },\n}];\n"
+      },
+      "id": "code-mudou",
+      "name": "Mudou?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -50
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-mudou",
+              "leftValue": "={{ $json.mudou }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "if-mudou",
+      "name": "Houve mudanca?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -50
+      ]
     },
     {
       "parameters": {
@@ -130,7 +177,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify(Object.assign({ message: 'Atualiza snapshot do dashboard — ' + $now.toFormat('yyyy-MM-dd HH:mm'), content: $('Montar snapshot').first().json.contentB64, branch: 'main' }, $json.sha ? { sha: $json.sha } : {})) }}",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ message: 'Atualiza snapshot do dashboard — ' + $now.toFormat('yyyy-MM-dd HH:mm'), content: $json.contentB64, branch: 'main' }, $json.sha ? { sha: $json.sha } : {})) }}",
         "options": {}
       },
       "id": "gh-put",
@@ -138,14 +185,25 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1100,
-        0
+        1540,
+        -140
       ],
       "notes": "API crua do GitHub: content vai em base64, codificado no Code node. O no nativo do GitHub codifica sozinho e geraria base64 duplo."
     }
   ],
   "connections": {
-    "Trigger - Caixa atualizado": {
+    "Executar agora": {
+      "main": [
+        [
+          {
+            "node": "Descobrir abas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 15 min": {
       "main": [
         [
           {
@@ -182,14 +240,36 @@
       "main": [
         [
           {
-            "node": "Buscar sha atual",
+            "node": "Buscar snapshot atual",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar sha atual": {
+    "Buscar snapshot atual": {
+      "main": [
+        [
+          {
+            "node": "Mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mudou?": {
+      "main": [
+        [
+          {
+            "node": "Houve mudanca?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Houve mudanca?": {
       "main": [
         [
           {
@@ -197,7 +277,8 @@
             "type": "main",
             "index": 0
           }
-        ]
+        ],
+        []
       ]
     }
   },

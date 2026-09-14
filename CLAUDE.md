@@ -90,6 +90,21 @@ Por isso os ranges agora vão **montados na URL**, nunca em `queryParameters`.
 
 **2. Não havia trava de sanidade.** O Code node não tinha um único `throw`. Publicou o vazio por cima de um snapshot bom sem nenhum sinal. Hoje ele estoura se a aba Caixa vier sem lançamentos, se a Estoque vier sem itens, ou se o Dashboard vier com caixa e vendas ambos em zero. **Não remover essas travas:** execução falhando é visível no n8n; painel apagado em silêncio não é.
 
+### Triggers: Schedule + Manual, não Google Sheets Trigger (14/09/2026)
+
+O Google Sheets Trigger foi removido. Ele falhou três vezes de formas diferentes:
+
+1. Em `rowUpdate` não disparava, porque lançamento novo é linha *acrescentada*, não alterada.
+2. Mesmo em `anyUpdate`, uma correção feita enquanto o dado estava ruim ficava esperando a *próxima* edição pra publicar.
+3. Depois de importar o workflow, **nunca rodava**: trigger de polling exige o workflow ativado, a primeira sondagem só grava a linha de base, e ainda depende de alguém editar a aba.
+
+No lugar entram dois triggers ligados no mesmo fluxo:
+
+- **Executar agora** (Manual) — para rodar na hora, logo depois de importar.
+- **A cada 15 min** (Schedule) — não depende de detectar edição nenhuma.
+
+Para o Schedule não gerar ~100 commits idênticos por dia, o nó **Mudou?** compara o snapshot recém-montado com o que já está no GitHub (o `GET /contents` devolve o conteúdo junto com o `sha`) e o IF seguinte só deixa passar quando diferem. O campo `updatedAt` é excluído da comparação de propósito: ele muda a cada execução e faria todo snapshot parecer diferente.
+
 ### Como o workflow lê a planilha agora
 
 Nada depende do nome nem da ordem das abas:
