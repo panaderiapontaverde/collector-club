@@ -14,93 +14,71 @@
         },
         "documentId": {
           "__rl": true,
-          "value": "1GN251Lcp8mP8fqITpxXLpXL-864Lvio8WYwEkgdEvvs",
+          "value": "1Y2lnqYZdzThhyVAoL5O3FCgNPrX1LZcmF4B15M2UMdU",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Lançamentos",
+          "value": "Caixa",
           "mode": "name"
         },
         "event": "anyUpdate",
         "options": {}
       },
-      "id": "trg-lancamentos",
-      "name": "Trigger — Lançamentos atualizado",
+      "id": "trg-caixa",
+      "name": "Trigger - Caixa atualizado",
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
       "position": [
         0,
         0
       ],
-      "notes": "Dispara quando qualquer linha da aba Lançamentos muda. O gate de verdade é o STATUS GERAL da aba Checks, conferido no nó Montar snapshot."
+      "notes": "anyUpdate: lancamento novo e linha ACRESCENTADA. Com rowUpdate sozinho o fluxo praticamente nunca dispara."
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets/1GN251Lcp8mP8fqITpxXLpXL-864Lvio8WYwEkgdEvvs/values:batchGet?ranges=Checks!A1:G20&ranges=Dashboard!A1:L50&ranges=Rel%C3%B3gios!A5:S505&ranges=Lan%C3%A7amentos!A5:W505&ranges=DRE!A1:J40&ranges=Fluxo%20de%20Caixa!A1:F40",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1Y2lnqYZdzThhyVAoL5O3FCgNPrX1LZcmF4B15M2UMdU?fields=sheets.properties.title",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": false
-            }
-          }
-        }
+        "options": {}
       },
-      "id": "http-batchget",
-      "name": "Ler planilha (batchGet)",
+      "id": "http-abas",
+      "name": "Descobrir abas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         220,
         0
       ],
-      "notes": "Uma request traz as 6 abas como arrays de celula crus. Dashboard vai ate a coluna L: os KPIs ficam em tres blocos (A-C, E-G, I-K), e um range mais estreito corta fora SALDO DE CAIXA, MARGEM LIQUIDA e PATRIMONIO LIQUIDO. Sem valueRenderOption = FORMATTED_VALUE, que e o formato que o parser espera."
+      "notes": "Pergunta a planilha quais abas existem, em vez de cravar os nomes no workflow. Aba renomeada ou acrescentada deixa de quebrar o fluxo."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/1Y2lnqYZdzThhyVAoL5O3FCgNPrX1LZcmF4B15M2UMdU/values:batchGet?' + $json.sheets.map(s => 'ranges=' + encodeURIComponent(s.properties.title)).join('&') }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "http-batch",
+      "name": "Ler planilha (batchGet)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "notes": "Os ranges vao montados na URL, NAO em queryParameters. O n8n monta os parametros de query como objeto, entao cinco entradas chamadas \"ranges\" se sobrescrevem e so a ultima e enviada -- foi assim que o snapshot saiu vazio em 14/09/2026. Range sem A1 significa a aba inteira."
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Recebe a resposta do values:batchGet (um único item) e devolve o snapshot.json\n// pronto pra ser comitado. Faz também o gate de STATUS GERAL, pra não precisar\n// de um nó Code separado só pra isso.\n//\n// A ordem aqui TEM que bater com a ordem dos `ranges=` na URL do nó\n// \"Ler planilha (batchGet)\": a API do Sheets devolve valueRanges na mesma ordem\n// em que foram pedidos.\nconst ORDEM = ['Checks', 'Dashboard', 'Relogios', 'Lancamentos', 'DRE', 'FluxoCaixa'];\n// Largura de cada range, em colunas. O batchGet corta células vazias no fim de\n// cada linha, então uma linha que termina em branco volta mais curta que as\n// outras — e os filtros por `row.length` descartariam ela por engano.\n// Dashboard tem 12: os KPIs ficam em três blocos (A-C, E-G, I-K), e um range\n// mais estreito corta fora SALDO DE CAIXA, MARGEM LÍQUIDA e PATRIMÔNIO LÍQUIDO.\nconst LARGURA = { Checks: 7, Dashboard: 12, Relogios: 19, Lancamentos: 23, DRE: 10, FluxoCaixa: 6 };\n\n// Chave de busca dos rótulos do Dashboard: sem acento, sem espaço duplo, em\n// caixa alta. Casar por texto acentuado literal é frágil demais — basta o\n// Sheets devolver a forma decomposta (e + acento combinante) ou um espaço\n// não-quebrável pra o KPI sumir em silêncio, sem erro nenhum.\nfunction chave(s) {\n  return String(s || '')\n    .normalize('NFD').split('').filter(function (c) {\n      const x = c.charCodeAt(0);\n      return x < 0x300 || x > 0x36f;  // descarta acentos combinantes\n    }).join('')\n    .replace(/\\s+/g, ' ').trim().toUpperCase();\n}\n\nconst resposta = $input.first().json;\nconst valueRanges = resposta.valueRanges;\nif (!Array.isArray(valueRanges) || valueRanges.length !== ORDEM.length) {\n  throw new Error(\n    'O batchGet devolveu ' + (valueRanges ? valueRanges.length : 0) + ' ranges, ' +\n    'esperado ' + ORDEM.length + '. Resposta: ' + JSON.stringify(resposta).slice(0, 500)\n  );\n}\n\nconst abas = {};\nORDEM.forEach((nome, i) => {\n  const linhas = valueRanges[i].values || [];\n  const w = LARGURA[nome];\n  abas[nome] = linhas.map((row) => {\n    const out = [];\n    for (let c = 0; c < w; c++) out.push((row[c] ?? '').toString().trim());\n    return out;\n  });\n});\n\nfunction parseBRL(v) {\n  if (v === null || v === undefined) return null;\n  let s = String(v).trim();\n  if (s === '' || s === '-' || s === '—') return null;\n  let neg = false;\n  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }\n  const n = parseFloat(s.replace(/[^\\d,.\\-]/g, '').replace(/\\./g, '').replace(',', '.'));\n  if (isNaN(n)) return null;\n  return neg ? -n : n;\n}\nfunction parsePct(v) {\n  if (!v) return 0;\n  const n = parseFloat(String(v).replace('%', '').replace(',', '.'));\n  return isNaN(n) ? 0 : n;\n}\nfunction parseInt_(v) {\n  if (!v) return 0;\n  const n = parseInt(String(v).replace(/[^\\d\\-]/g, ''), 10);\n  return isNaN(n) ? 0 : n;\n}\nfunction nonblank(row) { return row.filter((c) => c !== ''); }\nfunction dedupe(row) {\n  const out = [];\n  for (const c of row) if (out.length === 0 || out[out.length - 1] !== c) out.push(c);\n  return out;\n}\n\n// ---- Gate: Checks / STATUS GERAL ----\nlet statusGeral = null;\nfor (const row of abas.Checks) {\n  if (chave(row[0]) === 'STATUS GERAL') {\n    statusGeral = row.find((c, i) => i > 0 && c !== '') ?? '';\n    break;\n  }\n}\nif (statusGeral === null) {\n  throw new Error('Não achei a linha \"STATUS GERAL\" na coluna A da aba Checks (range A1:G20).');\n}\nconst pronto = chave(statusGeral) === 'OK';\n\n// ---- Dashboard: KPIs + estoque por status ----\n// O layout é de blocos: uma linha de rótulos, e logo abaixo a linha de valores.\n// Cada rótulo ocupa uma célula mesclada de 3 colunas, então tanto a linha de\n// rótulos quanto a de valores vêm com o conteúdo repetido — daí o dedupe.\nconst dashRows = abas.Dashboard;\nconst kv = {};\nfor (let i = 0; i < dashRows.length - 1; i++) {\n  const labels = nonblank(dedupe(dashRows[i]));\n  if (!labels.length) continue;\n  if (labels.some((c) => /^(R\\$|-|\\d)/.test(c))) continue;\n  const values = nonblank(dedupe(dashRows[i + 1]));\n  if (values.length === labels.length && JSON.stringify(values) !== JSON.stringify(labels)) {\n    labels.forEach((lab, idx) => { const k = chave(lab); if (!(k in kv)) kv[k] = values[idx]; });\n  }\n}\nconst kpis = {\n  faturamento: parseBRL(kv['FATURAMENTO']),\n  lucroLiquido: parseBRL(kv['LUCRO LIQUIDO']),\n  saldoCaixa: parseBRL(kv['SALDO DE CAIXA']) ?? 0,\n  capitalEstoque: parseBRL(kv['CAPITAL EM ESTOQUE']) ?? 0,\n  pecasEstoque: parseInt_(kv['PECAS EM ESTOQUE']),\n  margemLiquida: parsePct(kv['MARGEM LIQUIDA']),\n  dividaSocio: parseBRL(kv['DIVIDA COM SOCIO']) ?? 0,\n  patrimonioBruto: parseBRL(kv['PATRIMONIO BRUTO']) ?? 0,\n  patrimonioLiquido: parseBRL(kv['PATRIMONIO LIQUIDO']) ?? 0,\n};\n\nconst estoquePorStatus = [];\nfor (let i = 0; i < dashRows.length; i++) {\n  const nb = nonblank(dashRows[i]);\n  if (chave(nb[0]) === 'STATUS' && chave(nb[1]) === 'QUANTIDADE') {\n    for (let j = i + 1; j < dashRows.length; j++) {\n      const nb2 = nonblank(dashRows[j]);\n      if (nb2.length < 2) break;\n      estoquePorStatus.push({ status: nb2[0], qtd: parseInt_(nb2[1]) });\n    }\n    break;\n  }\n}\n\n// O rótulo ocupa uma célula mesclada, então ele se repete nas colunas seguintes:\n// o valor é a primeira célula à direita que for diferente dele.\nlet mesAnalisado = null;\nfor (const row of dashRows) {\n  const idx = row.findIndex((c) => chave(c) === 'MES ANALISADO');\n  if (idx === -1) continue;\n  const valor = row.slice(idx + 1).find((c) => c !== '' && chave(c) !== 'MES ANALISADO');\n  if (valor) mesAnalisado = valor;\n  break;\n}\n\n// ---- Relógios ----\nconst watches = abas.Relogios\n  .filter((r) => r[0] && r[0].startsWith('TCC'))\n  .map((c) => ({\n    itemId: c[0], marca: c[1], modelo: c[2], referencia: c[3], condicao: c[4],\n    status: c[5], dataCompra: c[6], dataEntrada: c[7], dataVenda: c[8], canal: c[9],\n    precoAnuncio: c[10], custoCompleto: c[11], vendaBruta: c[12], deducoes: c[13],\n    lucroLiquido: c[14], margem: c[15], dias: c[16] ? parseInt_(c[16]) : null,\n    lote: c[17], observacoes: c[18],\n  }));\n\n// ---- Lançamentos ----\nconst LANC = ['id', 'dataCompetencia', 'dataCaixa', 'itemId', 'lote', 'descricao', 'natureza',\n  'grupoDre', 'categoria', 'contraparte', 'conta', 'forma', 'moeda', 'valorOriginal', 'cambio',\n  'valorBRL', 'status', 'vencimento', 'documento', 'observacoes', 'centroCusto', 'tratamento',\n  'precisaoData'];\nconst lancamentos = abas.Lancamentos\n  .filter((r) => r[0] && r[0].startsWith('LCT-'))\n  .map((c) => {\n    const obj = {};\n    LANC.forEach((h, i) => { obj[h] = c[i] ?? ''; });\n    return obj;\n  });\n\n// ---- DRE mensal ----\nconst dreIdx = abas.DRE.findIndex((r) => chave(r[0]) === 'MES' && r[1] && chave(r[1]).startsWith('RECEITA'));\nconst dreMensal = (dreIdx === -1 ? [] : abas.DRE.slice(dreIdx + 1))\n  .filter((r) => r[0])\n  .map((r) => ({\n    mes: r[0],\n    receitaBruta: parseBRL(r[1]) ?? 0,\n    deducoes: parseBRL(r[2]) ?? 0,\n    receitaLiquida: parseBRL(r[3]) ?? 0,\n    cmv: parseBRL(r[4]) ?? 0,\n    lucroBruto: parseBRL(r[5]) ?? 0,\n    despesasOp: parseBRL(r[6]) ?? 0,\n    resultadoLiquido: parseBRL(r[7]) ?? 0,\n    margemLiquida: parsePct(r[8]),\n  }));\n\n// ---- Fluxo de caixa ----\nconst fxIdx = abas.FluxoCaixa.findIndex((r) => chave(r[0]) === 'MES' && r[1] && chave(r[1]).startsWith('ENTRADAS'));\nconst fluxoCaixa = (fxIdx === -1 ? [] : abas.FluxoCaixa.slice(fxIdx + 1))\n  .filter((r) => r[0])\n  .map((r) => ({\n    mes: r[0],\n    entradas: parseBRL(r[1]) ?? 0,\n    saidas: parseBRL(r[2]) ?? 0,\n    saldoMes: parseBRL(r[3]) ?? 0,\n    saldoAcumulado: parseBRL(r[4]) ?? 0,\n  }));\n\n// Se o gate passou mas a planilha veio vazia, é sinal de range errado ou aba\n// renomeada — melhor estourar aqui do que comitar um snapshot vazio por cima de\n// um bom e o painel amanhecer zerado.\nif (pronto && watches.length === 0 && lancamentos.length === 0) {\n  throw new Error(\n    'STATUS GERAL = OK mas não veio nenhum relógio nem lançamento. ' +\n    'Confira os ranges Relógios!A5:S505 e Lançamentos!A5:W505 e os nomes das abas.'\n  );\n}\n\nconst snapshot = {\n  updatedAt: new Date().toISOString(),\n  mesAnalisado,\n  kpis,\n  estoquePorStatus,\n  watches,\n  lancamentos,\n  dreMensal,\n  fluxoCaixa,\n};\n\nconst texto = JSON.stringify(snapshot, null, 2);\n\nreturn [{\n  json: {\n    pronto,\n    statusGeral,\n    // A API contents do GitHub recebe o conteúdo em base64 — aqui é a API crua,\n    // via HTTP Request, então a codificação é nossa mesmo. (O nó nativo do\n    // GitHub codifica sozinho; mandar base64 pra ele geraria base64 duplo.)\n    contentB64: Buffer.from(texto, 'utf-8').toString('base64'),\n    resumo: {\n      relogios: watches.length,\n      lancamentos: lancamentos.length,\n      mesesDre: dreMensal.length,\n      mesesFluxo: fluxoCaixa.length,\n      bytes: Buffer.byteLength(texto, 'utf-8'),\n      mesAnalisado,\n      kpis,\n      // Rótulos que o Dashboard entregou, já normalizados. Se algum KPI vier\n      // zerado, é aqui que se vê se o rótulo chegou e com que grafia.\n      rotulosDashboard: Object.keys(kv),\n    },\n  },\n}];\n"
+        "jsCode": "// Monta o snapshot v2 a partir da \"Controle Financeiro Simples\".\n//\n// A entrada e a resposta de um values:batchGet que pediu TODAS as abas da\n// planilha, pelo nome descoberto no no anterior. Nada aqui depende da ordem das\n// abas nem do nome delas: cada aba e reconhecida pela linha de cabecalho, e\n// cada coluna e lida pelo rotulo, nao pelo indice. Foi uma versao que dependia\n// de indice fixo (vr[0], vr[1], ...) que publicou um snapshot vazio por cima de\n// um bom, sem erro nenhum.\n\nfunction parseBRL(v) {\n  if (v === null || v === undefined) return null;\n  let s = String(v).trim();\n  if (s === '' || s === '-' || s === '—') return null;\n  let neg = false;\n  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }\n  if (s.startsWith('-R$') || s.startsWith('- R$')) { neg = true; s = s.replace('-', ''); }\n  const n = parseFloat(s.replace(/[^\\d,.\\-]/g, '').replace(/\\./g, '').replace(',', '.'));\n  if (isNaN(n)) return null;\n  return neg ? -Math.abs(n) : n;\n}\nfunction parsePct(v) {\n  if (v === null || v === undefined || v === '') return null;\n  const n = parseFloat(String(v).replace('%', '').replace(',', '.'));\n  return isNaN(n) ? null : n;\n}\nfunction parseInt_(v) {\n  if (v === null || v === undefined || v === '') return null;\n  const n = parseInt(String(v).replace(/[^\\d\\-]/g, ''), 10);\n  return isNaN(n) ? null : n;\n}\nfunction clean(v) { return (v ?? '').toString().trim(); }\n// Chave de comparacao: sem acento, caixa alta, espacos colapsados. O Sheets\n// pode devolver acento decomposto ou espaco nao-quebravel, e comparar texto\n// acentuado na unha faz o rotulo \"sumir\" sem erro.\nfunction norm(s) {\n  return clean(s).normalize('NFD').split('').filter(function (c) {\n    const x = c.charCodeAt(0);\n    return x < 0x300 || x > 0x36f;\n  }).join('').toUpperCase().replace(/\\s+/g, ' ').trim();\n}\n\nconst resp = $input.first().json;\nconst vr = resp.valueRanges;\nif (!Array.isArray(vr) || vr.length === 0) {\n  throw new Error('O batchGet nao devolveu nenhum range. Resposta: ' +\n    JSON.stringify(resp).slice(0, 400));\n}\n\n// Cada aba vira { linhas, cabecalho, col } assim que casar com uma assinatura.\nconst abas = vr.map(function (r) { return (r && r.values) || []; });\n\n// Procura, dentro de uma aba, a linha cujo conteudo contem todos os rotulos\n// pedidos. Devolve o indice da linha e o mapa rotulo -> coluna.\nfunction casaCabecalho(linhas, obrigatorios) {\n  for (let i = 0; i < linhas.length; i++) {\n    const cels = (linhas[i] || []).map(norm);\n    if (obrigatorios.every(function (o) { return cels.indexOf(norm(o)) !== -1; })) {\n      const col = {};\n      cels.forEach(function (c, j) { if (c && !(c in col)) col[c] = j; });\n      return { inicio: i + 1, col: col };\n    }\n  }\n  return null;\n}\n\n// Acha a aba que satisfaz a assinatura, varrendo todas as abas recebidas.\nfunction acharAba(obrigatorios, apelido) {\n  for (const linhas of abas) {\n    const m = casaCabecalho(linhas, obrigatorios);\n    if (m) return { linhas: linhas, inicio: m.inicio, col: m.col };\n  }\n  throw new Error('Nao encontrei a aba de ' + apelido + ': nenhuma das ' +\n    abas.length + ' abas tem uma linha de cabecalho com ' +\n    obrigatorios.join(' + ') + '.');\n}\n\n// Leitor de celula por rotulo de coluna.\nfunction leitor(aba) {\n  return function (linha, rotulo) {\n    const j = aba.col[norm(rotulo)];\n    return j === undefined ? '' : clean(linha[j]);\n  };\n}\nfunction linhasDe(aba) { return aba.linhas.slice(aba.inicio); }\n\n// ---- Dashboard: pares rotulo/valor em duas colunas ----\n// Nao tem cabecalho tabular; e reconhecida por conter \"Posicao financeira\".\nlet dashRows = null;\nfor (const linhas of abas) {\n  if (linhas.some(function (r) { return norm((r || [])[0]) === 'POSICAO FINANCEIRA'; })) {\n    dashRows = linhas;\n    break;\n  }\n}\nif (!dashRows) {\n  throw new Error('Nao encontrei a aba Dashboard: nenhuma aba tem a linha ' +\n    '\"Posicao financeira\" na primeira coluna.');\n}\nconst dashMap = {};\nfor (const row of dashRows) {\n  if (!row || row.length < 2) continue;\n  const label = norm(row[0]);\n  if (label && !(label in dashMap)) dashMap[label] = clean(row[1]);\n}\nconst get = function (label) { return dashMap[norm(label)]; };\n\nconst posicaoFinanceira = {\n  caixaDisponivel: parseBRL(get('Caixa disponível')) ?? 0,\n  contasReceber: parseBRL(get('Contas a receber')) ?? 0,\n  contasPagar: parseBRL(get('Contas a pagar')) ?? 0,\n  estoquePeloCusto: parseBRL(get('Estoque pelo custo')) ?? 0,\n  valoresReceberSocio: parseBRL(get('Valores a receber do sócio (retiradas)')) ?? 0,\n  ativosOperacionais: parseBRL(get('Ativos operacionais')) ?? 0,\n  emprestimosRecebidos: parseBRL(get('Empréstimos recebidos')) ?? 0,\n  emprestimosPagos: parseBRL(get('Empréstimos pagos')) ?? 0,\n  saldoEmprestimosPagar: parseBRL(get('Saldo de empréstimos a pagar')) ?? 0,\n  patrimonioLiquido: parseBRL(get('Patrimônio líquido')) ?? 0,\n};\nconst dreAcumulada = {\n  vendasBrutas: parseBRL(get('Vendas brutas')) ?? 0,\n  taxasVendas: parseBRL(get('Taxas das vendas')) ?? 0,\n  vendasLiquidas: parseBRL(get('Vendas líquidas')) ?? 0,\n  custoItensVendidos: parseBRL(get('Custo dos itens vendidos')) ?? 0,\n  despesasOperacionais: parseBRL(get('Despesas operacionais')) ?? 0,\n  receitaVendasTerceiros: parseBRL(get('Receita com vendas de terceiros')) ?? 0,\n  resultadoLiquido: parseBRL(get('Resultado líquido')) ?? 0,\n};\nconst indicadores = {\n  itensEstoque: parseInt_(get('Itens atuais no estoque')) ?? 0,\n  itensVendidos: parseInt_(get('Itens vendidos')) ?? 0,\n  margemLiquidaAcumulada: parsePct(get('Margem líquida acumulada')) ?? 0,\n};\n\n// ---- Estoque e vendas ----\nconst abaEstoque = acharAba(['Data da compra', 'Item', 'Custo final'], 'Estoque');\nconst cEst = leitor(abaEstoque);\nconst estoque = linhasDe(abaEstoque)\n  .filter(function (r) { return r && cEst(r, 'Item'); })\n  .map(function (r) {\n    return {\n      dataCompra: cEst(r, 'Data da compra') || null,\n      item: cEst(r, 'Item'),\n      origem: cEst(r, 'Origem') || null,\n      valorBase: parseBRL(cEst(r, 'Valor base')),\n      comissao: parseBRL(cEst(r, 'Comissão')),\n      iof: parseBRL(cEst(r, 'IOF')),\n      frete: parseBRL(cEst(r, 'Frete')),\n      imposto: parseBRL(cEst(r, 'Imposto')),\n      outrosCustos: parseBRL(cEst(r, 'Outros custos')),\n      custoFinal: parseBRL(cEst(r, 'Custo final')),\n      dataVenda: cEst(r, 'Data da venda') || null,\n      canalVenda: cEst(r, 'Canal da venda') || null,\n      valorVenda: parseBRL(cEst(r, 'Valor da venda')),\n      taxasVenda: parseBRL(cEst(r, 'Taxas da venda')),\n      valorLiquido: parseBRL(cEst(r, 'Valor líquido')),\n      lucro: parseBRL(cEst(r, 'Lucro')),\n      margem: parsePct(cEst(r, 'Margem')),\n    };\n  });\n\n// ---- Vendas de terceiros (consignacao) ----\nconst abaTerceiros = acharAba(['Data da venda', 'Relógio', 'Proprietário'], 'Vendas de Terceiros');\nconst cTer = leitor(abaTerceiros);\nconst vendasTerceiros = linhasDe(abaTerceiros)\n  .filter(function (r) { return r && cTer(r, 'Relógio'); })\n  .map(function (r) {\n    return {\n      dataVenda: cTer(r, 'Data da venda') || null,\n      relogio: cTer(r, 'Relógio'),\n      proprietario: cTer(r, 'Proprietário') || null,\n      valorTotalVendido: parseBRL(cTer(r, 'Valor total vendido')),\n      valorRepassar: parseBRL(cTer(r, 'Valor a repassar')),\n      comissaoLoja: parseBRL(cTer(r, 'Comissão da loja')),\n      taxasDespesas: parseBRL(cTer(r, 'Taxas/despesas')),\n      receitaLiquida: parseBRL(cTer(r, 'Receita líquida')),\n      recebido: cTer(r, 'Recebido?') || null,\n      dataRecebimento: cTer(r, 'Data do recebimento') || null,\n      formaPagamento: cTer(r, 'Forma de pagamento') || null,\n      observacoes: cTer(r, 'Observações') || null,\n    };\n  });\n\n// ---- Caixa ----\nconst abaCaixa = acharAba(['Data', 'Descrição', 'Realizado?', 'Saldo'], 'Caixa');\nconst cCx = leitor(abaCaixa);\nconst caixa = linhasDe(abaCaixa)\n  .filter(function (r) { return r && cCx(r, 'Descrição'); })\n  .map(function (r) {\n    return {\n      data: cCx(r, 'Data') || null,\n      descricao: cCx(r, 'Descrição'),\n      categoria: cCx(r, 'Categoria') || null,\n      itemRelacionado: cCx(r, 'Item relacionado') || null,\n      vencimento: cCx(r, 'Vencimento') || null,\n      realizado: cCx(r, 'Realizado?') || null,\n      entrada: parseBRL(cCx(r, 'Entrada')),\n      saida: parseBRL(cCx(r, 'Saída')),\n      formaPagamento: cCx(r, 'Forma de pagamento') || null,\n      saldo: parseBRL(cCx(r, 'Saldo')),\n    };\n  });\n\n// ---- Gerenciador de anuncios ----\nconst abaAnuncios = acharAba(['Data', 'Campanha', 'CTR'], 'Gerenciador de Anúncios');\nconst cAn = leitor(abaAnuncios);\nconst anuncios = linhasDe(abaAnuncios)\n  .filter(function (r) { return r && cAn(r, 'Data'); })\n  .map(function (r) {\n    return {\n      data: cAn(r, 'Data') || null,\n      campanha: cAn(r, 'Campanha') || null,\n      alcance: parseInt_(cAn(r, 'Alcance')),\n      impressoes: parseInt_(cAn(r, 'Impressões')),\n      cliques: parseInt_(cAn(r, 'Cliques no link')),\n      cpc: parseBRL(cAn(r, 'CPC')),\n      ctr: parsePct(cAn(r, 'CTR')),\n      valorGasto: parseBRL(cAn(r, 'Valor gasto')),\n      resultados: parseInt_(cAn(r, 'Resultados')),\n      custoPorResultado: parseBRL(cAn(r, 'Custo por resultado')),\n    };\n  });\n\n// ---- Travas ----\n// Publicar um snapshot vazio por cima de um bom deixa o painel em branco sem\n// nenhum sinal de erro. E exatamente o que aconteceu em 14/09/2026. Melhor a\n// execucao falhar, visivel no n8n, do que o painel apagar em silencio.\nif (caixa.length === 0) {\n  throw new Error('A aba Caixa veio sem nenhum lancamento. Abortado para nao ' +\n    'publicar um snapshot vazio por cima do atual.');\n}\nif (estoque.length === 0) {\n  throw new Error('A aba Estoque veio sem nenhum item. Abortado para nao ' +\n    'publicar um snapshot vazio por cima do atual.');\n}\nif (posicaoFinanceira.caixaDisponivel === 0 && dreAcumulada.vendasBrutas === 0) {\n  throw new Error('O Dashboard veio todo zerado (caixa e vendas em 0). Rotulos ' +\n    'lidos: ' + Object.keys(dashMap).slice(0, 20).join(' | '));\n}\n\n// Conferencia, nao trava: o saldo da ultima linha do Caixa deve bater com o\n// \"Caixa disponivel\" do Dashboard. Divergir nao impede publicar -- pode ser\n// ordenacao ou linha pendente -- mas fica registrado pra diagnostico.\nconst ultimoSaldo = caixa.length ? caixa[caixa.length - 1].saldo : null;\nconst bateSaldo = ultimoSaldo !== null &&\n  Math.abs(ultimoSaldo - posicaoFinanceira.caixaDisponivel) < 0.01;\n\nconst snapshot = {\n  updatedAt: new Date().toISOString(),\n  posicaoFinanceira,\n  dreAcumulada,\n  indicadores,\n  estoque,\n  vendasTerceiros,\n  caixa,\n  anuncios,\n};\n\nconst texto = JSON.stringify(snapshot, null, 2);\n\nreturn [{\n  json: {\n    contentB64: Buffer.from(texto, 'utf-8').toString('base64'),\n    resumo: {\n      abasRecebidas: abas.length,\n      itensEstoque: estoque.length,\n      vendasTerceiros: vendasTerceiros.length,\n      lancamentosCaixa: caixa.length,\n      diasDeAnuncio: anuncios.length,\n      bytes: Buffer.byteLength(texto, 'utf-8'),\n      caixaDisponivel: posicaoFinanceira.caixaDisponivel,\n      ultimoSaldoDoCaixa: ultimoSaldo,\n      saldoConfere: bateSaldo,\n    },\n  },\n}];\n"
       },
-      "id": "code-snapshot",
+      "id": "code-snap",
       "name": "Montar snapshot",
       "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        440,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
-          },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "cond-pronto",
-              "leftValue": "={{ $json.pronto }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "if-pronto",
-      "name": "Publicação pronta?",
-      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         660,
@@ -133,7 +111,7 @@
         0
       ],
       "onError": "continueRegularOutput",
-      "notes": "A API contents exige o sha do arquivo pra sobrescrever. Se o arquivo não existir ainda, isto devolve 404 — daí o onError continueRegularOutput: o próximo nó omite o sha e o PUT vira um create em vez de estourar."
+      "notes": "A API contents exige o sha pra sobrescrever. Se o arquivo nao existir, isto da 404 e o onError deixa seguir: o PUT vira um create."
     },
     {
       "parameters": {
@@ -163,11 +141,22 @@
         1100,
         0
       ],
-      "notes": "API crua do GitHub: o campo content vai em base64, codificado no nó Montar snapshot. (O nó nativo do GitHub codifica sozinho — mandar base64 pra ele geraria base64 duplo e um arquivo ilegível.)"
+      "notes": "API crua do GitHub: content vai em base64, codificado no Code node. O no nativo do GitHub codifica sozinho e geraria base64 duplo."
     }
   ],
   "connections": {
-    "Trigger — Lançamentos atualizado": {
+    "Trigger - Caixa atualizado": {
+      "main": [
+        [
+          {
+            "node": "Descobrir abas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descobrir abas": {
       "main": [
         [
           {
@@ -193,23 +182,11 @@
       "main": [
         [
           {
-            "node": "Publicação pronta?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Publicação pronta?": {
-      "main": [
-        [
-          {
             "node": "Buscar sha atual",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Buscar sha atual": {
