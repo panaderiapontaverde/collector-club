@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-15T16:30:12.980Z",
+  "updatedAt": "2026-09-15T23:00:14.241Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 31914.21,
+    "caixaDisponivel": 26907.05,
     "contasReceber": 10300,
     "contasPagar": 0,
-    "estoquePeloCusto": 4716.02,
+    "estoquePeloCusto": 9723.18,
     "valoresReceberSocio": 1675,
     "ativosOperacionais": 48605.23,
     "emprestimosRecebidos": 40000,
@@ -22,7 +22,7 @@
     "resultadoLiquido": 5107.28
   },
   "indicadores": {
-    "itensEstoque": 1,
+    "itensEstoque": 3,
     "itensVendidos": 9,
     "margemLiquidaAcumulada": 18.2
   },
@@ -216,6 +216,44 @@
       "valorLiquido": 2450,
       "lucro": 0,
       "margem": 0
+    },
+    {
+      "dataCompra": "15/09/2026",
+      "item": "Seiko Prospex Chronograph SBDL091",
+      "origem": "Compra",
+      "valorBase": 2116.81,
+      "comissao": 423.36,
+      "iof": null,
+      "frete": 115.82,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2655.99,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "15/09/2026",
+      "item": "Tissot PRX Quartz — mostrador prata",
+      "origem": "Compra",
+      "valorBase": 1862.79,
+      "comissao": 372.56,
+      "iof": null,
+      "frete": 115.82,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2351.17,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
     }
   ],
   "vendasTerceiros": [],
@@ -591,6 +629,42 @@
       "saida": null,
       "formaPagamento": null,
       "saldo": 31914.21
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Compra — Seiko Prospex Chronograph SBDL091",
+      "categoria": "Compra",
+      "itemRelacionado": "Seiko Prospex Chronograph SBDL091",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2540.17,
+      "formaPagamento": null,
+      "saldo": 29374.04
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Compra — Tissot PRX Quartz",
+      "categoria": "Compra",
+      "itemRelacionado": "Tissot PRX Quartz — mostrador prata",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2235.35,
+      "formaPagamento": null,
+      "saldo": 27138.69
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Frete internacional — Seiko + Tissot",
+      "categoria": "Custo de importação",
+      "itemRelacionado": "Frete internacional rateado entre os dois relógios",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 231.64,
+      "formaPagamento": null,
+      "saldo": 26907.05
     }
   ],
   "anuncios": [
