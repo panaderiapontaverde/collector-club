@@ -1,30 +1,30 @@
 {
-  "updatedAt": "2026-09-15T15:00:13.734Z",
+  "updatedAt": "2026-09-15T16:30:12.980Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 26614.21,
+    "caixaDisponivel": 31914.21,
     "contasReceber": 10300,
     "contasPagar": 0,
-    "estoquePeloCusto": 9799.47,
+    "estoquePeloCusto": 4716.02,
     "valoresReceberSocio": 1675,
-    "ativosOperacionais": 48388.68,
+    "ativosOperacionais": 48605.23,
     "emprestimosRecebidos": 40000,
     "emprestimosPagos": 0,
     "saldoEmprestimosPagar": 40000,
-    "patrimonioLiquido": 8388.68
+    "patrimonioLiquido": 8605.23
   },
   "dreAcumulada": {
-    "vendasBrutas": 22700,
+    "vendasBrutas": 28000,
     "taxasVendas": 0,
-    "vendasLiquidas": 22700,
-    "custoItensVendidos": 17519.27,
+    "vendasLiquidas": 28000,
+    "custoItensVendidos": 22602.72,
     "despesasOperacionais": 290,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 4890.73
+    "resultadoLiquido": 5107.28
   },
   "indicadores": {
-    "itensEstoque": 2,
-    "itensVendidos": 8,
-    "margemLiquidaAcumulada": 21.5
+    "itensEstoque": 1,
+    "itensVendidos": 9,
+    "margemLiquidaAcumulada": 18.2
   },
   "estoque": [
     {
@@ -76,13 +76,13 @@
       "imposto": 506.79,
       "outrosCustos": null,
       "custoFinal": 5083.45,
-      "dataVenda": null,
-      "canalVenda": null,
-      "valorVenda": null,
+      "dataVenda": "15/09/2026",
+      "canalVenda": "OLX",
+      "valorVenda": 5300,
       "taxasVenda": null,
-      "valorLiquido": null,
-      "lucro": null,
-      "margem": null
+      "valorLiquido": 5300,
+      "lucro": 216.55,
+      "margem": 4.1
     },
     {
       "dataCompra": null,
@@ -579,6 +579,18 @@
       "saida": 100,
       "formaPagamento": null,
       "saldo": 26614.21
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Venda — TAG Heuer Aquaracer CAN1010.BA0821",
+      "categoria": "Venda",
+      "itemRelacionado": "TAG Heuer Aquaracer CAN1010.BA0821",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": 5300,
+      "saida": null,
+      "formaPagamento": null,
+      "saldo": 31914.21
     }
   ],
   "anuncios": [
