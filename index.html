@@ -215,18 +215,33 @@
 
     // Para cada peça: custo registrado (só o que foi lançado), o que ainda é
     // estimativa, e o custo final projetado.
+    //
+    // A planilha já calcula a projeção nas colunas "Custo final projetado" e
+    // "Custos ainda estimados". Quando o snapshot as traz, elas mandam — são a
+    // fonte da verdade. A estimativa local existe só para o período em que o
+    // snapshot ainda não carrega esses campos, e chega perto sem acertar em
+    // cheio, porque a taxa real da planilha é outra.
+    var projecaoDaPlanilha = false;
     itens.forEach(function(e){
-      var estimado = 0, faltando = [];
+      var estimadoLocal = 0, faltando = [];
       ESTIMAVEIS.forEach(function(c){
         if (e[c] === null || e[c] === undefined){
-          estimado += num(e.valorBase) * taxa[c];
+          estimadoLocal += num(e.valorBase) * taxa[c];
           faltando.push(c);
         }
       });
       e._registrado = num(e.custoFinal);
-      e._estimado   = estimado;
-      e._projetado  = e._registrado + estimado;
       e._faltando   = faltando;
+
+      if (e.custoProjetado !== null && e.custoProjetado !== undefined){
+        e._projetado = num(e.custoProjetado);
+        e._estimado  = (e.custosEstimados !== null && e.custosEstimados !== undefined)
+          ? num(e.custosEstimados) : (e._projetado - e._registrado);
+        projecaoDaPlanilha = true;
+      } else {
+        e._estimado  = estimadoLocal;
+        e._projetado = e._registrado + estimadoLocal;
+      }
     });
 
     var realizados = caixa.filter(foiRealizado);
@@ -304,6 +319,7 @@
       margemSobreVendas: vendasLiquido > 0 ? lucroAcumulado / vendasLiquido * 100 : null,
       saldoEmprestimos: emprestimoRec - emprestimoPago,
       despesas: despesas,
+      projecaoDaPlanilha: projecaoDaPlanilha,
       semData: caixa.filter(function(c){ return !c.data; }).length
     };
   }
@@ -403,7 +419,11 @@
     h += '</div>';
     h += '<p class="nota-rodape">Estoque registrado <b>' + BRL(m.estoqueRegistrado) + '</b> · ' +
          'projetado <span class="est">' + BRL(m.estoqueProjetado) + '</span>, dos quais ' +
-         '<span class="est">' + BRL(m.estoqueEstimado) + '</span> ainda são estimativas.</p>';
+         '<span class="est">' + BRL(m.estoqueEstimado) + '</span> ainda são estimativas.<br>' +
+         (m.projecaoDaPlanilha
+            ? 'Projeção calculada pela planilha.'
+            : 'A planilha ainda não envia a projeção neste snapshot; os valores acima são ' +
+              'estimados pela média histórica dos custos já lançados.') + '</p>';
     return h;
   }
 

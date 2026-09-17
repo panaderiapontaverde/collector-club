@@ -127,6 +127,14 @@ Validado contra o conteúdo real da planilha, com as abas passadas em ordem emba
 | saldo da última linha do Caixa | `caixaDisponivel` R$ 26.714,21 |
 | 8 vendidos / 2 em estoque | `indicadores` |
 
+### Revisão de 17/09/2026 contra a planilha
+
+A planilha **renomeou** a coluna `Custo final` da aba Estoque para **`Custo registrado`** e acrescentou duas colunas: `Custo final projetado` e `Custos ainda estimados`. Por isso o Code node agora aceita **rótulos alternativos** — cada item de uma assinatura pode ser uma lista, e o leitor de célula tenta os nomes em ordem. Assinatura presa a um nome único faz o fluxo inteiro estourar quando alguém renomeia uma coluna.
+
+O painel usa a projeção da planilha quando ela chega no snapshot (`custoProjetado` / `custosEstimados`) e só cai numa estimativa própria — pela média histórica dos custos já lançados — enquanto esses campos não vierem. O rodapé da aba Estoque diz qual das duas está valendo. A estimativa local chega perto mas não acerta em cheio: a taxa real da planilha é outra (o Simulador usa 20% / 5% / 5,7% / 18,3% / 0%).
+
+Conferido item a item: com as colunas novas no snapshot, o painel reproduz exatamente os R$ 25.615,95 de estoque projetado e os R$ 3.627,64 de custo ainda estimado.
+
 ## Decisões já tomadas (não reabrir sem necessidade)
 
 - Sem backend/serverless, sem autenticação de aplicação, repositório público, atualização periódica (não real-time) — mesmas decisões da v1, continuam válidas.
