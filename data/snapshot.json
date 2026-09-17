@@ -1,16 +1,16 @@
 {
-  "updatedAt": "2026-09-15T23:00:14.241Z",
+  "updatedAt": "2026-09-17T11:45:55.272Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 26907.05,
-    "contasReceber": 10300,
+    "caixaDisponivel": 18041.92,
+    "contasReceber": 6900,
     "contasPagar": 0,
-    "estoquePeloCusto": 9723.18,
+    "estoquePeloCusto": 21988.31,
     "valoresReceberSocio": 1675,
-    "ativosOperacionais": 48605.23,
+    "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
     "emprestimosPagos": 0,
     "saldoEmprestimosPagar": 40000,
-    "patrimonioLiquido": 8605.23
+    "patrimonioLiquido": 0
   },
   "dreAcumulada": {
     "vendasBrutas": 28000,
@@ -22,7 +22,7 @@
     "resultadoLiquido": 5107.28
   },
   "indicadores": {
-    "itensEstoque": 3,
+    "itensEstoque": 8,
     "itensVendidos": 9,
     "margemLiquidaAcumulada": 18.2
   },
@@ -219,7 +219,7 @@
     },
     {
       "dataCompra": "15/09/2026",
-      "item": "Seiko Prospex Chronograph SBDL091",
+      "item": "Seiko Prospex Speedtimer Solar Black — SBDL091 / SSC819P1 — 2º exemplar",
       "origem": "Compra",
       "valorBase": 2116.81,
       "comissao": 423.36,
@@ -238,15 +238,110 @@
     },
     {
       "dataCompra": "15/09/2026",
-      "item": "Tissot PRX Quartz — mostrador prata",
+      "item": "Tissot PRX Quartz — mostrador branco",
       "origem": "Compra",
       "valorBase": 1862.79,
       "comissao": 372.56,
       "iof": null,
+      "frete": 112.55,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2347.9,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": null,
+      "item": "Omega x Swatch MoonSwatch Snoopy branco — novo exemplar",
+      "origem": "Compra",
+      "valorBase": 1657.82,
+      "comissao": 331.56,
+      "iof": null,
       "frete": 115.82,
       "imposto": null,
       "outrosCustos": null,
-      "custoFinal": 2351.17,
+      "custoFinal": 2105.2,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": null,
+      "item": "TAG Heuer Série 2000 WK1110 — 2º exemplar (Full Set)",
+      "origem": "Compra",
+      "valorBase": 2003.91,
+      "comissao": 400.78,
+      "iof": null,
+      "frete": 121.07,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2525.76,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "15/09/2026",
+      "item": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 3º exemplar",
+      "origem": "Compra",
+      "valorBase": 2293.21,
+      "comissao": 458.64,
+      "iof": null,
+      "frete": null,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2751.85,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "15/09/2026",
+      "item": "TAG Heuer WK1110 — 3º exemplar",
+      "origem": "Compra",
+      "valorBase": 1778.12,
+      "comissao": 355.62,
+      "iof": null,
+      "frete": null,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2133.74,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "15/09/2026",
+      "item": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 4º exemplar",
+      "origem": "Compra",
+      "valorBase": 2293.21,
+      "comissao": 458.64,
+      "iof": null,
+      "frete": null,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2751.85,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -488,15 +583,15 @@
     },
     {
       "data": "09/09/2026",
-      "descricao": "Venda pendente — Seiko Prospex Speedtimer Solar Black",
+      "descricao": "Venda recebida — Seiko Prospex Speedtimer Solar Black",
       "categoria": "Venda",
       "itemRelacionado": "Seiko Prospex Speedtimer Solar Black — SBDL091 / SSC819P1",
       "vencimento": null,
-      "realizado": "Não",
+      "realizado": "Sim",
       "entrada": 3400,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 3524.21
+      "saldo": 6924.21
     },
     {
       "data": "09/09/2026",
@@ -508,7 +603,7 @@
       "entrada": 1800,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 5324.21
+      "saldo": 8724.21
     },
     {
       "data": "10/10/2026",
@@ -520,7 +615,7 @@
       "entrada": 1700,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 5324.21
+      "saldo": 8724.21
     },
     {
       "data": "10/11/2026",
@@ -532,7 +627,7 @@
       "entrada": 1700,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 5324.21
+      "saldo": 8724.21
     },
     {
       "data": "07/09/2026",
@@ -544,7 +639,7 @@
       "entrada": 900,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 6224.21
+      "saldo": 9624.21
     },
     {
       "data": "11/09/2026",
@@ -556,7 +651,7 @@
       "entrada": 3500,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 6224.21
+      "saldo": 9624.21
     },
     {
       "data": "11/09/2026",
@@ -568,7 +663,7 @@
       "entrada": null,
       "saida": 285,
       "formaPagamento": null,
-      "saldo": 5939.21
+      "saldo": 9339.21
     },
     {
       "data": "11/09/2026",
@@ -580,7 +675,7 @@
       "entrada": null,
       "saida": 1675,
       "formaPagamento": null,
-      "saldo": 4264.21
+      "saldo": 7664.21
     },
     {
       "data": "10/09/2026",
@@ -592,7 +687,7 @@
       "entrada": 20000,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 24264.21
+      "saldo": 27664.21
     },
     {
       "data": "13/09/2026",
@@ -604,7 +699,7 @@
       "entrada": 2450,
       "saida": null,
       "formaPagamento": "Dinheiro",
-      "saldo": 26714.21
+      "saldo": 30114.21
     },
     {
       "data": "14/09/2026",
@@ -616,7 +711,7 @@
       "entrada": null,
       "saida": 100,
       "formaPagamento": null,
-      "saldo": 26614.21
+      "saldo": 30014.21
     },
     {
       "data": "15/09/2026",
@@ -628,43 +723,115 @@
       "entrada": 5300,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 31914.21
+      "saldo": 35314.21
     },
     {
       "data": "15/09/2026",
       "descricao": "Compra — Seiko Prospex Chronograph SBDL091",
       "categoria": "Compra",
-      "itemRelacionado": "Seiko Prospex Chronograph SBDL091",
+      "itemRelacionado": "Seiko Prospex Speedtimer Solar Black — SBDL091 / SSC819P1 — 2º exemplar",
       "vencimento": null,
       "realizado": "Sim",
       "entrada": null,
       "saida": 2540.17,
       "formaPagamento": null,
-      "saldo": 29374.04
+      "saldo": 32774.04
     },
     {
       "data": "15/09/2026",
       "descricao": "Compra — Tissot PRX Quartz",
       "categoria": "Compra",
-      "itemRelacionado": "Tissot PRX Quartz — mostrador prata",
+      "itemRelacionado": "Tissot PRX Quartz — mostrador branco",
       "vencimento": null,
       "realizado": "Sim",
       "entrada": null,
       "saida": 2235.35,
       "formaPagamento": null,
-      "saldo": 27138.69
+      "saldo": 30538.69
     },
     {
-      "data": "15/09/2026",
-      "descricao": "Frete internacional — Seiko + Tissot",
+      "data": null,
+      "descricao": "Frete compartilhado — Seiko + Snoopy branco (¥ 6.565)",
       "categoria": "Custo de importação",
-      "itemRelacionado": "Frete internacional rateado entre os dois relógios",
+      "itemRelacionado": "Seiko preto + Snoopy branco; DHL 3266658043; 50% para cada",
       "vencimento": null,
       "realizado": "Sim",
       "entrada": null,
       "saida": 231.64,
       "formaPagamento": null,
-      "saldo": 26907.05
+      "saldo": 30307.05
+    },
+    {
+      "data": null,
+      "descricao": "Compra — Snoopy branco (estimativa em R$ do preço + serviço 20%)",
+      "categoria": "Compra",
+      "itemRelacionado": "Omega x Swatch MoonSwatch Snoopy branco — novo exemplar",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 1989.38,
+      "formaPagamento": null,
+      "saldo": 28317.67
+    },
+    {
+      "data": null,
+      "descricao": "Compra — TAG Heuer WK1110 (estimativa em R$ do preço + serviço 20%)",
+      "categoria": "Compra",
+      "itemRelacionado": "TAG Heuer Série 2000 WK1110 — 2º exemplar (Full Set)",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2404.69,
+      "formaPagamento": null,
+      "saldo": 25912.98
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Compra — Seiko Speedtimer Panda (estimativa em R$ do preço + serviço 20%)",
+      "categoria": "Compra",
+      "itemRelacionado": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 3º exemplar",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2751.85,
+      "formaPagamento": null,
+      "saldo": 23161.13
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Compra — TAG Heuer WK1110 (estimativa em R$ do preço + serviço 20%)",
+      "categoria": "Compra",
+      "itemRelacionado": "TAG Heuer WK1110 — 3º exemplar",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2133.74,
+      "formaPagamento": null,
+      "saldo": 21027.39
+    },
+    {
+      "data": "15/09/2026",
+      "descricao": "Compra — Seiko Panda 4º exemplar (estimativa em R$ do preço + serviço 20%)",
+      "categoria": "Compra",
+      "itemRelacionado": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 4º exemplar",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2751.85,
+      "formaPagamento": null,
+      "saldo": 18275.54
+    },
+    {
+      "data": null,
+      "descricao": "Frete compartilhado — Tissot PRX + TAG WK1110 Full Set (¥ 6.622)",
+      "categoria": "Custo de importação",
+      "itemRelacionado": "Tissot PRX (R$ 112,55) + TAG WK1110 Full Set (R$ 121,07)",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 233.62,
+      "formaPagamento": null,
+      "saldo": 18041.92
     }
   ],
   "anuncios": [
