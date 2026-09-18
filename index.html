@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Collector Club — Painel</title>
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#17140F">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -34,6 +37,13 @@
   @media (min-width:720px){ .wrap{padding:28px 24px 64px;} }
 
   header.top{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .marca-bloco{ display:flex; align-items:center; gap:12px; min-width:0; }
+  /* A arte já vem sobre fundo preto, então o raio apenas recorta o quadrado:
+     vira uma placa escura que funciona igual nos dois temas, sem precisar de
+     duas versões do arquivo. */
+  .marca{ width:46px; height:46px; border-radius:11px; flex:none; display:block;
+    background:#000; border:1px solid var(--border); }
+  @media (min-width:720px){ .marca{ width:56px; height:56px; border-radius:13px; } }
   .brand-eyebrow{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:600; margin:0 0 4px; }
   h1{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:27px; line-height:1.05; margin:0; letter-spacing:-0.01em; }
   @media (min-width:720px){ h1{font-size:34px;} }
@@ -113,6 +123,11 @@
 
   .nota-rodape{ font-size:11.5px; color:var(--muted); line-height:1.55; margin-top:14px; }
   footer{ margin-top:34px; color:var(--muted); font-size:11.5px; text-align:center; line-height:1.6; }
+  footer p{ margin:0; }
+  /* A arte é branca sobre preto; no tema claro ela some. A placa escura
+     arredondada resolve sem precisar de um segundo arquivo invertido. */
+  .logo-rodape{ width:130px; height:auto; display:block; margin:0 auto 14px;
+    background:#000; border:1px solid var(--border); border-radius:14px; padding:10px; }
   .vazio{ color:var(--muted); font-size:13px; padding:26px 14px; text-align:center;
     background:var(--surface); border:1px solid var(--border); border-radius:12px; }
   .stale-banner{ display:none; background:color-mix(in srgb, var(--negative) 14%, transparent);
@@ -125,9 +140,12 @@
 
 <div class="wrap">
   <header class="top">
-    <div>
-      <p class="brand-eyebrow">The Collector Club</p>
-      <h1>Painel financeiro</h1>
+    <div class="marca-bloco">
+      <img class="marca" src="assets/marca.png" alt="" width="52" height="52" decoding="async">
+      <div>
+        <p class="brand-eyebrow">The Collector Club</p>
+        <h1>Painel financeiro</h1>
+      </div>
     </div>
     <div class="meta">atualizado em <span id="updatedAt">—</span></div>
   </header>
@@ -148,7 +166,10 @@
   <div class="panel" id="pVendas"></div>
   <div class="panel" id="pContas"></div>
 
-  <footer id="footerNote">The Collector Club — dados sincronizados da planilha financeira.</footer>
+  <footer>
+    <img class="logo-rodape" src="assets/logo.png" alt="The Collector Club" width="150" height="146" loading="lazy" decoding="async">
+    <p id="footerNote">The Collector Club — dados sincronizados da planilha financeira.</p>
+  </footer>
 </div>
 
 <script>
