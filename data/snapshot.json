@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-18T16:00:55.338Z",
+  "updatedAt": "2026-09-18T16:15:54.813Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 15933.58,
+    "caixaDisponivel": 13609.74,
     "contasReceber": 6900,
     "contasPagar": 0,
-    "estoquePeloCusto": 24096.65,
+    "estoquePeloCusto": 26420.49,
     "valoresReceberSocio": 1675,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
@@ -22,7 +22,7 @@
     "resultadoLiquido": 5107.28
   },
   "indicadores": {
-    "itensEstoque": 9,
+    "itensEstoque": 10,
     "itensVendidos": 9,
     "margemLiquidaAcumulada": 18.2
   },
@@ -352,7 +352,7 @@
     },
     {
       "dataCompra": "17/09/2026",
-      "item": "Seiko Prospex — pedido PP-1900 (modelo a confirmar)",
+      "item": "Seiko Prospex — mostrador preto — 3º exemplar",
       "origem": "Compra",
       "valorBase": 1756.95,
       "comissao": 351.39,
@@ -361,6 +361,25 @@
       "imposto": null,
       "outrosCustos": null,
       "custoFinal": 2108.34,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "18/09/2026",
+      "item": "Seiko Prospex Speedtimer Panda — 5º exemplar (pedido PP-1903)",
+      "origem": "Compra",
+      "valorBase": 1936.53,
+      "comissao": 387.31,
+      "iof": null,
+      "frete": null,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2323.84,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -854,15 +873,27 @@
     },
     {
       "data": "17/09/2026",
-      "descricao": "Compra — Seiko Prospex PP-1900 (¥ 49.800 + serviço 20%; R$ estimados)",
+      "descricao": "Compra — Seiko Prospex mostrador preto, 3º exemplar — PP-1900 (R$ estimados)",
       "categoria": "Compra",
-      "itemRelacionado": "Seiko Prospex — pedido PP-1900 (modelo a confirmar)",
+      "itemRelacionado": "Seiko Prospex — mostrador preto — 3º exemplar",
       "vencimento": null,
       "realizado": "Sim",
       "entrada": null,
       "saida": 2108.34,
       "formaPagamento": null,
       "saldo": 15933.58
+    },
+    {
+      "data": "18/09/2026",
+      "descricao": "Compra — Seiko Panda 5º exemplar — PP-1903 (¥ 54.890 + serviço 20%; R$ estimados)",
+      "categoria": "Compra",
+      "itemRelacionado": "Seiko Prospex Speedtimer Panda — 5º exemplar (pedido PP-1903)",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2323.84,
+      "formaPagamento": null,
+      "saldo": 13609.74
     }
   ],
   "anuncios": [
