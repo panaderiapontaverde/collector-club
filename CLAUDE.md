@@ -135,6 +135,27 @@ O painel usa a projeção da planilha quando ela chega no snapshot (`custoProjet
 
 Conferido item a item: com as colunas novas no snapshot, o painel reproduz exatamente os R$ 25.615,95 de estoque projetado e os R$ 3.627,64 de custo ainda estimado.
 
+## Radar de oportunidades (Mercari / 2nd Street)
+
+Módulo **externo**, fora do meu escopo: ele busca anúncios nos dois sites, faz triagem, dá score e grava o resultado **numa aba da própria planilha**. As fotos vivem no **Cloudflare R2**; a planilha guarda só a URL.
+
+Do lado do pipeline, o contrato é uma aba com esta linha de cabeçalho (a ordem não importa — as colunas são lidas pelo rótulo):
+
+`Site · ID · Título · Referência · Preço · Moeda · Condição · Vendedor · URL · Foto · Score · Situação · Decisão · Encontrado em · Observações`
+
+- `Site` só aceita `MERCARI` ou `2NDSTREET`.
+- `ID` é a chave única: `MERCARI_{listing_id}` ou `2NDSTREET_{goodsId}`.
+- `Situação`: `ATIVO`, `RESERVADO`, `VENDIDO`, `REMOVIDO` ou `ERRO_TEMPORARIO`.
+- `Decisão` é a coluna que o painel grava: vazio, `Aceita` ou `Recusada`.
+
+**A aba é opcional no parser** (`acharAbaOpcional`), e isso é deliberado: exigi-la faria o fluxo inteiro parar de publicar enquanto o radar não existisse, derrubando o painel financeiro por causa de uma feature que nem foi ligada. Sem a aba, o snapshot sai com `oportunidades: []` e a aba do painel nem aparece.
+
+### Botões de aceitar/recusar
+
+O painel é público e sem login — decisão explícita do João, tomada sabendo que qualquer pessoa com o endereço pode clicar. A mitigação está no desenho, não no acesso: a ação só grava `Aceita`/`Recusada` numa coluna, o próprio botão troca a decisão depois, e nada é apagado. Um clique indevido se desfaz com outro clique.
+
+A gravação vai para um **webhook do n8n**, que escreve na planilha com as credenciais Google que já estão lá. O painel envia `{ id, decisao, em }`. A URL fica em `WEBHOOK_DECISAO`, no topo do script do `index.html`: **enquanto estiver vazia os botões nascem desabilitados**, com aviso na tela — a lista continua sendo exibida normalmente.
+
 ## Decisões já tomadas (não reabrir sem necessidade)
 
 - Sem backend/serverless, sem autenticação de aplicação, repositório público, atualização periódica (não real-time) — mesmas decisões da v1, continuam válidas.

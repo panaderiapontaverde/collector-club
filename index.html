@@ -121,6 +121,29 @@
   .resumo-linha + .resumo-linha{ margin-top:7px; }
   .resumo-linha .n{ font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-weight:600; }
 
+  /* Oportunidades do radar */
+  .op{ display:flex; gap:12px; padding:13px 15px; }
+  .op-foto{ width:66px; height:66px; flex:none; border-radius:10px; object-fit:cover;
+    background:var(--surface-2); border:1px solid var(--border); }
+  .op-corpo{ min-width:0; flex:1; display:flex; flex-direction:column; gap:6px; }
+  .op-topo{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .op-tit{ font-weight:600; font-size:13.5px; line-height:1.35; }
+  .op-tit a{ color:inherit; text-decoration:none; border-bottom:1px solid var(--border); }
+  .op-tit a:hover{ border-bottom-color:var(--accent); }
+  .op-meta{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11.5px; color:var(--muted); }
+  .op-meta b{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+  .op-score{ font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px;
+    flex:none; font-variant-numeric:tabular-nums; }
+  .op-acoes{ display:flex; gap:7px; flex-wrap:wrap; margin-top:2px; }
+  .btn{ appearance:none; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
+    padding:6px 13px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink); }
+  .btn:hover{ border-color:var(--accent); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn.sim{ border-color:transparent; background:color-mix(in srgb, var(--positive) 18%, transparent); color:var(--positive); }
+  .btn.nao{ border-color:transparent; background:color-mix(in srgb, var(--negative) 16%, transparent); color:var(--negative); }
+  .btn[aria-pressed="true"]{ outline:2px solid currentColor; outline-offset:1px; }
+  .op-estado{ font-size:11.5px; color:var(--muted); align-self:center; }
   .nota-rodape{ font-size:11.5px; color:var(--muted); line-height:1.55; margin-top:14px; }
   footer{ margin-top:34px; color:var(--muted); font-size:11.5px; text-align:center; line-height:1.6; }
   footer p{ margin:0; }
@@ -159,12 +182,14 @@
     <button class="tab-btn" data-panel="pReceber" role="tab">A receber</button>
     <button class="tab-btn" data-panel="pVendas" role="tab">Vendas</button>
     <button class="tab-btn" data-panel="pContas" role="tab">Empréstimos e despesas</button>
+    <button class="tab-btn" data-panel="pOport" role="tab" id="tabOport" hidden>Oportunidades</button>
   </nav>
 
   <div class="panel active" id="pEstoque"></div>
   <div class="panel" id="pReceber"></div>
   <div class="panel" id="pVendas"></div>
   <div class="panel" id="pContas"></div>
+  <div class="panel" id="pOport"></div>
 
   <footer>
     <img class="logo-rodape" src="assets/logo.png" alt="The Collector Club" width="150" height="146" loading="lazy" decoding="async">
@@ -340,6 +365,8 @@
       margemSobreVendas: vendasLiquido > 0 ? lucroAcumulado / vendasLiquido * 100 : null,
       saldoEmprestimos: emprestimoRec - emprestimoPago,
       despesas: despesas,
+      oportunidades: snap.oportunidades || [],
+      temAbaOportunidades: !!(snap.oportunidades && snap.oportunidades.length),
       projecaoDaPlanilha: projecaoDaPlanilha,
       semData: caixa.filter(function(c){ return !c.data; }).length
     };
@@ -541,6 +568,113 @@
     return h;
   }
 
+
+  // ------------------------------------------------------------------
+  // Oportunidades do radar (Mercari / 2nd Street)
+  // ------------------------------------------------------------------
+  // O painel e publico e sem login -- decisao explicita. Por isso a acao aqui e
+  // deliberadamente reversivel: gravar "Aceita" ou "Recusada" numa coluna, que o
+  // proprio botao troca depois. Nada e apagado, nada e irreversivel, e um clique
+  // indevido se desfaz com outro clique.
+  var WEBHOOK_DECISAO = '';  // <- URL do webhook do n8n; vazio desliga os botoes
+
+  var JPY = function(v){
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return '¥ ' + v.toLocaleString('pt-BR', {maximumFractionDigits:0});
+  };
+  var SITE_ROTULO = { MERCARI:'Mercari', '2NDSTREET':'2nd Street' };
+
+  function renderOportunidades(m){
+    var lista = m.oportunidades;
+    if (!lista.length){
+      return vazio(m.temAbaOportunidades
+        ? 'Nenhuma oportunidade cadastrada ainda.'
+        : 'O radar ainda não está enviando oportunidades.');
+    }
+    // Ativas primeiro, depois maior score; o que ja saiu do ar vai pro fim.
+    var ordem = lista.slice().sort(function(a,b){
+      var aAtiva = /ativ|reserv/i.test(a.situacao || '') ? 0 : 1;
+      var bAtiva = /ativ|reserv/i.test(b.situacao || '') ? 0 : 1;
+      if (aAtiva !== bAtiva) return aAtiva - bAtiva;
+      return num(b.score) - num(a.score);
+    });
+
+    var h = '<div class="lista">';
+    ordem.forEach(function(o){
+      var aceita  = /aceit/i.test(o.decisao || '');
+      var recusada = /recus/i.test(o.decisao || '');
+      var site = SITE_ROTULO[(o.site || '').toUpperCase()] || o.site || '—';
+      var titulo = esc(o.titulo || o.id);
+      h += '<div class="linha"><div class="op">';
+      h += o.foto
+        ? '<img class="op-foto" src="' + esc(o.foto) + '" alt="" loading="lazy" decoding="async">'
+        : '<div class="op-foto"></div>';
+      h += '<div class="op-corpo">';
+      h += '<div class="op-topo"><div class="op-tit">' +
+        (o.url ? '<a href="' + esc(o.url) + '" target="_blank" rel="noopener noreferrer">' + titulo + '</a>' : titulo) +
+        '</div>' + (o.score !== null && o.score !== undefined
+          ? '<div class="op-score">' + esc(o.score) + '</div>' : '') + '</div>';
+      h += '<div class="op-meta">' +
+        '<span class="pill">' + esc(site) + '</span>' +
+        (o.situacao ? '<span class="pill' + (/ativ/i.test(o.situacao) ? ' ok' : '') + '">' + esc(o.situacao) + '</span>' : '') +
+        '<span>' + JPY(o.preco) + '</span>' +
+        (o.condicao ? '<span>' + esc(o.condicao) + '</span>' : '') +
+        (o.referencia ? '<span>ref <b>' + esc(o.referencia) + '</b></span>' : '') +
+        (o.vendedor ? '<span>' + esc(o.vendedor) + '</span>' : '') +
+        (o.encontradoEm ? '<span>achado em ' + esc(o.encontradoEm) + '</span>' : '') +
+        '</div>';
+      var podeAgir = !!WEBHOOK_DECISAO;
+      h += '<div class="op-acoes" data-id="' + esc(o.id) + '">' +
+        '<button class="btn sim" data-decisao="Aceita" aria-pressed="' + aceita + '"' +
+          (podeAgir ? '' : ' disabled') + '>Aceitar</button>' +
+        '<button class="btn nao" data-decisao="Recusada" aria-pressed="' + recusada + '"' +
+          (podeAgir ? '' : ' disabled') + '>Recusar</button>' +
+        '<span class="op-estado">' + (aceita ? 'Aceita' : recusada ? 'Recusada' : 'Sem decisão') + '</span>' +
+        '</div>';
+      h += '</div></div></div>';
+    });
+    h += '</div>';
+    if (!WEBHOOK_DECISAO){
+      h += '<p class="nota-rodape">Os botões estão desligados: falta apontar o webhook do n8n ' +
+           'em <code>WEBHOOK_DECISAO</code>, no topo do script.</p>';
+    } else {
+      h += '<p class="nota-rodape">A decisão é gravada na planilha e pode ser trocada a qualquer ' +
+           'momento clicando no outro botão. Nada é apagado.</p>';
+    }
+    return h;
+  }
+
+  // Delegacao de evento: o conteudo e reescrito a cada atualizacao, entao ouvir
+  // no container evita religar handler em cada render.
+  document.getElementById('pOport').addEventListener('click', function(ev){
+    var btn = ev.target.closest ? ev.target.closest('.btn[data-decisao]') : null;
+    if (!btn || btn.disabled || !WEBHOOK_DECISAO) return;
+    var caixa = btn.parentNode;
+    var id = caixa.getAttribute('data-id');
+    var decisao = btn.getAttribute('data-decisao');
+    var estado = caixa.querySelector('.op-estado');
+    var botoes = caixa.querySelectorAll('.btn');
+    for (var i = 0; i < botoes.length; i++) botoes[i].disabled = true;
+    estado.textContent = 'Gravando...';
+    fetch(WEBHOOK_DECISAO, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: id, decisao: decisao, em: new Date().toISOString()})
+    }).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      for (var i = 0; i < botoes.length; i++){
+        botoes[i].disabled = false;
+        botoes[i].setAttribute('aria-pressed', botoes[i] === btn);
+      }
+      estado.textContent = decisao;
+      // A planilha e a fonte da verdade; o proximo ciclo confirma o que gravou.
+      setTimeout(loadSnapshot, 1500);
+    }).catch(function(e){
+      for (var i = 0; i < botoes.length; i++) botoes[i].disabled = false;
+      estado.textContent = 'Não consegui gravar (' + e.message + ')';
+    });
+  });
+
   // ------------------------------------------------------------------
   function wireTabs(){
     var btns = Array.prototype.slice.call(document.querySelectorAll('.tab-btn'));
@@ -562,6 +696,10 @@
     document.getElementById('pReceber').innerHTML = renderReceber(m);
     document.getElementById('pVendas').innerHTML  = renderVendas(m);
     document.getElementById('pContas').innerHTML  = renderContas(m);
+    document.getElementById('pOport').innerHTML   = renderOportunidades(m);
+    // A aba so aparece quando o radar estiver enviando algo: uma aba vazia e
+    // ruido para quem usa o painel todo dia so pelo financeiro.
+    document.getElementById('tabOport').hidden = !m.oportunidades.length;
 
     var quando = '—';
     if (snap.updatedAt){
