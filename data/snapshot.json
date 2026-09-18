@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-17T11:45:55.272Z",
+  "updatedAt": "2026-09-18T16:00:55.338Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 18041.92,
+    "caixaDisponivel": 15933.58,
     "contasReceber": 6900,
     "contasPagar": 0,
-    "estoquePeloCusto": 21988.31,
+    "estoquePeloCusto": 24096.65,
     "valoresReceberSocio": 1675,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
@@ -22,7 +22,7 @@
     "resultadoLiquido": 5107.28
   },
   "indicadores": {
-    "itensEstoque": 8,
+    "itensEstoque": 9,
     "itensVendidos": 9,
     "margemLiquidaAcumulada": 18.2
   },
@@ -342,6 +342,25 @@
       "imposto": null,
       "outrosCustos": null,
       "custoFinal": 2751.85,
+      "dataVenda": null,
+      "canalVenda": null,
+      "valorVenda": null,
+      "taxasVenda": null,
+      "valorLiquido": null,
+      "lucro": null,
+      "margem": null
+    },
+    {
+      "dataCompra": "17/09/2026",
+      "item": "Seiko Prospex — pedido PP-1900 (modelo a confirmar)",
+      "origem": "Compra",
+      "valorBase": 1756.95,
+      "comissao": 351.39,
+      "iof": null,
+      "frete": null,
+      "imposto": null,
+      "outrosCustos": null,
+      "custoFinal": 2108.34,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -832,6 +851,18 @@
       "saida": 233.62,
       "formaPagamento": null,
       "saldo": 18041.92
+    },
+    {
+      "data": "17/09/2026",
+      "descricao": "Compra — Seiko Prospex PP-1900 (¥ 49.800 + serviço 20%; R$ estimados)",
+      "categoria": "Compra",
+      "itemRelacionado": "Seiko Prospex — pedido PP-1900 (modelo a confirmar)",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2108.34,
+      "formaPagamento": null,
+      "saldo": 15933.58
     }
   ],
   "anuncios": [
