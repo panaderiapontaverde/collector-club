@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-18T21:30:55.285Z",
+  "updatedAt": "2026-09-18T22:00:55.239Z",
   "posicaoFinanceira": {
     "caixaDisponivel": 15664.47,
     "contasReceber": 3400,
@@ -921,7 +921,7 @@
     },
     {
       "data": "18/09/2026",
-      "descricao": "Cobrança DHL de importação — Seiko preto + Snoopy branco — rastreio 3266658043",
+      "descricao": "Imposto de importação pago à DHL — Seiko preto + Snoopy branco — rastreio 3266658043",
       "categoria": "Custo de importação",
       "itemRelacionado": "Seiko Solar Black 2º (R$ 361,87) + Snoopy branco (R$ 283,40); DHL 3266658043",
       "vencimento": null,
