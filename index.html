@@ -671,7 +671,12 @@
       setTimeout(loadSnapshot, 1500);
     }).catch(function(e){
       for (var i = 0; i < botoes.length; i++) botoes[i].disabled = false;
-      estado.textContent = 'Não consegui gravar (' + e.message + ')';
+      // "Failed to fetch" é o que o navegador diz para CORS barrado, conteúdo
+      // misto (webhook em http) e host inalcançável — três causas distintas com
+      // a mesma mensagem. Sem essa dica, o diagnóstico vira adivinhação.
+      estado.textContent = /failed to fetch|networkerror|load failed/i.test(e.message)
+        ? 'Não consegui falar com o webhook. Verifique CORS, HTTPS e se o endereço é acessível pela internet.'
+        : 'Não consegui gravar (' + e.message + ')';
     });
   });
 

@@ -154,6 +154,14 @@ Do lado do pipeline, o contrato é uma aba com esta linha de cabeçalho (a ordem
 
 O painel é público e sem login — decisão explícita do João, tomada sabendo que qualquer pessoa com o endereço pode clicar. A mitigação está no desenho, não no acesso: a ação só grava `Aceita`/`Recusada` numa coluna, o próprio botão troca a decisão depois, e nada é apagado. Um clique indevido se desfaz com outro clique.
 
+O webhook **não fica na Vercel**: o projeto é estático puro, sem rota `/api` e sem função. A página só faz um `fetch` para uma URL externa.
+
+Como quem chama é o navegador do João, e não um servidor, o webhook precisa de três coisas — e elas falham nesta ordem:
+
+1. **HTTPS.** O painel é HTTPS; um webhook em `http://` é barrado como conteúdo misto antes de a requisição sair.
+2. **Alcançável pela internet.** A chamada parte do celular, não do servidor. Instância em rede local, atrás de VPN ou sem porta exposta não atende.
+3. **CORS.** O nó Webhook do n8n tem o campo *Allowed Origins (CORS)*: precisa conter a origem do painel ou `*`. É a causa mais comum de falha, e o navegador reporta as três como o mesmo "Failed to fetch" — por isso o painel traduz esse erro numa mensagem que cita as três.
+
 A gravação vai para um **webhook do n8n**, que escreve na planilha com as credenciais Google que já estão lá. O painel envia `{ id, decisao, em }`. A URL fica em `WEBHOOK_DECISAO`, no topo do script do `index.html`: **enquanto estiver vazia os botões nascem desabilitados**, com aviso na tela — a lista continua sendo exibida normalmente.
 
 ## Decisões já tomadas (não reabrir sem necessidade)
