@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-18T16:15:54.813Z",
+  "updatedAt": "2026-09-18T19:15:54.723Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 13609.74,
+    "caixaDisponivel": 13409.74,
     "contasReceber": 6900,
     "contasPagar": 0,
     "estoquePeloCusto": 26420.49,
@@ -17,14 +17,14 @@
     "taxasVendas": 0,
     "vendasLiquidas": 28000,
     "custoItensVendidos": 22602.72,
-    "despesasOperacionais": 290,
+    "despesasOperacionais": 490,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 5107.28
+    "resultadoLiquido": 4907.28
   },
   "indicadores": {
     "itensEstoque": 10,
     "itensVendidos": 9,
-    "margemLiquidaAcumulada": 18.2
+    "margemLiquidaAcumulada": 17.5
   },
   "estoque": [
     {
@@ -894,6 +894,18 @@
       "saida": 2323.84,
       "formaPagamento": null,
       "saldo": 13609.74
+    },
+    {
+      "data": "18/09/2026",
+      "descricao": "Tráfego pago",
+      "categoria": "Anúncio",
+      "itemRelacionado": null,
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 200,
+      "formaPagamento": null,
+      "saldo": 13409.74
     }
   ],
   "anuncios": [
@@ -1050,6 +1062,18 @@
       "cpc": null,
       "ctr": 0,
       "valorGasto": 3.04,
+      "resultados": null,
+      "custoPorResultado": null
+    },
+    {
+      "data": "18/09/2026",
+      "campanha": "Tráfego pago",
+      "alcance": null,
+      "impressoes": null,
+      "cliques": null,
+      "cpc": null,
+      "ctr": null,
+      "valorGasto": 200,
       "resultados": null,
       "custoPorResultado": null
     }
