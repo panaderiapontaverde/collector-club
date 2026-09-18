@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-18T19:15:54.723Z",
+  "updatedAt": "2026-09-18T21:30:55.285Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 13409.74,
-    "contasReceber": 6900,
+    "caixaDisponivel": 15664.47,
+    "contasReceber": 3400,
     "contasPagar": 0,
-    "estoquePeloCusto": 26420.49,
+    "estoquePeloCusto": 27065.76,
     "valoresReceberSocio": 1675,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
@@ -17,14 +17,14 @@
     "taxasVendas": 0,
     "vendasLiquidas": 28000,
     "custoItensVendidos": 22602.72,
-    "despesasOperacionais": 490,
+    "despesasOperacionais": 1090,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 4907.28
+    "resultadoLiquido": 4307.28
   },
   "indicadores": {
     "itensEstoque": 10,
     "itensVendidos": 9,
-    "margemLiquidaAcumulada": 17.5
+    "margemLiquidaAcumulada": 15.4
   },
   "estoque": [
     {
@@ -225,9 +225,9 @@
       "comissao": 423.36,
       "iof": null,
       "frete": 115.82,
-      "imposto": null,
+      "imposto": 361.87,
       "outrosCustos": null,
-      "custoFinal": 2655.99,
+      "custoFinal": 3017.86,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -263,9 +263,9 @@
       "comissao": 331.56,
       "iof": null,
       "frete": 115.82,
-      "imposto": null,
+      "imposto": 283.4,
       "outrosCustos": null,
-      "custoFinal": 2105.2,
+      "custoFinal": 2388.6,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -681,15 +681,15 @@
     },
     {
       "data": "11/09/2026",
-      "descricao": "Venda pendente — Seiko Prospex Speedtimer Panda 1º exemplar (recebe quando o relógio chegar ao cliente)",
+      "descricao": "Venda recebida — Seiko Prospex Speedtimer Panda 1º exemplar (OLX)",
       "categoria": "Venda",
       "itemRelacionado": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 1º exemplar",
       "vencimento": null,
-      "realizado": "Não",
+      "realizado": "Sim",
       "entrada": 3500,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 9624.21
+      "saldo": 13124.21
     },
     {
       "data": "11/09/2026",
@@ -701,7 +701,7 @@
       "entrada": null,
       "saida": 285,
       "formaPagamento": null,
-      "saldo": 9339.21
+      "saldo": 12839.21
     },
     {
       "data": "11/09/2026",
@@ -713,7 +713,7 @@
       "entrada": null,
       "saida": 1675,
       "formaPagamento": null,
-      "saldo": 7664.21
+      "saldo": 11164.21
     },
     {
       "data": "10/09/2026",
@@ -725,7 +725,7 @@
       "entrada": 20000,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 27664.21
+      "saldo": 31164.21
     },
     {
       "data": "13/09/2026",
@@ -737,7 +737,7 @@
       "entrada": 2450,
       "saida": null,
       "formaPagamento": "Dinheiro",
-      "saldo": 30114.21
+      "saldo": 33614.21
     },
     {
       "data": "14/09/2026",
@@ -749,7 +749,7 @@
       "entrada": null,
       "saida": 100,
       "formaPagamento": null,
-      "saldo": 30014.21
+      "saldo": 33514.21
     },
     {
       "data": "15/09/2026",
@@ -761,7 +761,7 @@
       "entrada": 5300,
       "saida": null,
       "formaPagamento": null,
-      "saldo": 35314.21
+      "saldo": 38814.21
     },
     {
       "data": "15/09/2026",
@@ -773,7 +773,7 @@
       "entrada": null,
       "saida": 2540.17,
       "formaPagamento": null,
-      "saldo": 32774.04
+      "saldo": 36274.04
     },
     {
       "data": "15/09/2026",
@@ -785,7 +785,7 @@
       "entrada": null,
       "saida": 2235.35,
       "formaPagamento": null,
-      "saldo": 30538.69
+      "saldo": 34038.69
     },
     {
       "data": null,
@@ -797,7 +797,7 @@
       "entrada": null,
       "saida": 231.64,
       "formaPagamento": null,
-      "saldo": 30307.05
+      "saldo": 33807.05
     },
     {
       "data": null,
@@ -809,7 +809,7 @@
       "entrada": null,
       "saida": 1989.38,
       "formaPagamento": null,
-      "saldo": 28317.67
+      "saldo": 31817.67
     },
     {
       "data": null,
@@ -821,7 +821,7 @@
       "entrada": null,
       "saida": 2404.69,
       "formaPagamento": null,
-      "saldo": 25912.98
+      "saldo": 29412.98
     },
     {
       "data": "15/09/2026",
@@ -833,7 +833,7 @@
       "entrada": null,
       "saida": 2751.85,
       "formaPagamento": null,
-      "saldo": 23161.13
+      "saldo": 26661.13
     },
     {
       "data": "15/09/2026",
@@ -845,7 +845,7 @@
       "entrada": null,
       "saida": 2133.74,
       "formaPagamento": null,
-      "saldo": 21027.39
+      "saldo": 24527.39
     },
     {
       "data": "15/09/2026",
@@ -857,7 +857,7 @@
       "entrada": null,
       "saida": 2751.85,
       "formaPagamento": null,
-      "saldo": 18275.54
+      "saldo": 21775.54
     },
     {
       "data": null,
@@ -869,7 +869,7 @@
       "entrada": null,
       "saida": 233.62,
       "formaPagamento": null,
-      "saldo": 18041.92
+      "saldo": 21541.92
     },
     {
       "data": "17/09/2026",
@@ -881,7 +881,7 @@
       "entrada": null,
       "saida": 2108.34,
       "formaPagamento": null,
-      "saldo": 15933.58
+      "saldo": 19433.58
     },
     {
       "data": "18/09/2026",
@@ -893,7 +893,7 @@
       "entrada": null,
       "saida": 2323.84,
       "formaPagamento": null,
-      "saldo": 13609.74
+      "saldo": 17109.74
     },
     {
       "data": "18/09/2026",
@@ -905,7 +905,31 @@
       "entrada": null,
       "saida": 200,
       "formaPagamento": null,
-      "saldo": 13409.74
+      "saldo": 16909.74
+    },
+    {
+      "data": "18/09/2026",
+      "descricao": "ICMS da venda OLX — Seiko Prospex Speedtimer Panda 1º exemplar (minha parte de R$ 1.200)",
+      "categoria": "Outra despesa",
+      "itemRelacionado": "Seiko Prospex Speedtimer Panda — SBDL085 / SSC813P1 — 1º exemplar",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 600,
+      "formaPagamento": null,
+      "saldo": 16309.74
+    },
+    {
+      "data": "18/09/2026",
+      "descricao": "Cobrança DHL de importação — Seiko preto + Snoopy branco — rastreio 3266658043",
+      "categoria": "Custo de importação",
+      "itemRelacionado": "Seiko Solar Black 2º (R$ 361,87) + Snoopy branco (R$ 283,40); DHL 3266658043",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 645.27,
+      "formaPagamento": null,
+      "saldo": 15664.47
     }
   ],
   "anuncios": [
