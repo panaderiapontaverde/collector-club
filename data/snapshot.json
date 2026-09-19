@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-09-18T23:45:55.250Z",
+  "updatedAt": "2026-09-19T21:00:55.295Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 15664.47,
+    "caixaDisponivel": 13364.47,
     "contasReceber": 3400,
     "contasPagar": 0,
     "estoquePeloCusto": 27065.76,
-    "valoresReceberSocio": 1675,
+    "valoresReceberSocio": 3975,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
     "emprestimosPagos": 0,
@@ -930,6 +930,18 @@
       "saida": 645.27,
       "formaPagamento": null,
       "saldo": 15664.47
+    },
+    {
+      "data": "19/09/2026",
+      "descricao": "Retirada do sócio — empréstimo pessoal a devolver à loja",
+      "categoria": "Retirada do sócio",
+      "itemRelacionado": "The Collector Club",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 2300,
+      "formaPagamento": null,
+      "saldo": 13364.47
     }
   ],
   "anuncios": []
