@@ -183,7 +183,13 @@ A assinatura de OPORTUNIDADES precisa de `internal_status` e `score_total` porqu
 
 **HISTORICO fica fora de propósito:** ela cresce sem teto e o `snapshot.json` é baixado pelo navegador a cada 5 minutos.
 
-Em IMAGENS, `stored_url` (cópia no R2) tem preferência sobre `original_url`, que morre quando o anúncio sai do ar. As fotos são ordenadas por `position`, preservando a ordem do anúncio.
+Em IMAGENS as fotos são ordenadas por `position`, preservando a ordem do anúncio.
+
+**A URL do próprio anúncio (`original_url`) tem preferência sobre `stored_url`** — decisão do João em 21/09, para não exigir um bucket R2 só por causa das fotos. `stored_url` fica como reserva: se um dia uma foto for copiada, ela passa a valer, sem mudança de código.
+
+O custo dessa escolha é link rot: a URL do anúncio morre quando o anúncio sai do ar, então oportunidade antiga tende a ficar sem foto. Isso pesa mais do que parece, porque rejeitado continua visível justamente para ser reconsiderado depois — e é a foto que faz lembrar de qual relógio se tratava.
+
+O painel trata as duas falhas possíveis (anúncio fora do ar, ou hotlink recusado pelo site) trocando a imagem pelo mesmo quadrado vazio de quem nunca teve foto, e manda `referrerpolicy="no-referrer"`, que costuma contornar bloqueio por referer.
 
 ### Decisão humana: `internal_status`
 

@@ -644,8 +644,11 @@
       var site = SITE_ROTULO[(o.site || '').toUpperCase()] || o.site || '—';
       var titulo = esc(o.titulo || o.id);
       h += '<div class="linha"><div class="op">';
+      // no-referrer: alguns sites recusam imagem quando o referer vem de outro
+      // dominio. Sem contrapartida aqui, porque nao precisamos nos identificar.
       h += o.foto
-        ? '<img class="op-foto" src="' + esc(o.foto) + '" alt="" loading="lazy" decoding="async">'
+        ? '<img class="op-foto" src="' + esc(o.foto) + '" alt="" loading="lazy"' +
+          ' decoding="async" referrerpolicy="no-referrer">'
         : '<div class="op-foto"></div>';
       h += '<div class="op-corpo">';
       h += '<div class="op-topo"><div class="op-tit">' +
@@ -686,6 +689,19 @@
     }
     return h;
   }
+
+  // Foto que nao carrega -- anuncio fora do ar, ou hotlink recusado pelo site --
+  // vira o mesmo quadrado vazio de quem nunca teve foto. O evento `error` de
+  // <img> nao borbulha, daí o listener em fase de captura.
+  document.getElementById('pOport').addEventListener('error', function(ev){
+    var alvo = ev.target;
+    if (alvo && alvo.tagName === 'IMG' && alvo.classList.contains('op-foto')){
+      var vazio = document.createElement('div');
+      vazio.className = 'op-foto';
+      vazio.title = 'Foto indisponível — o anúncio pode ter saído do ar.';
+      alvo.parentNode.replaceChild(vazio, alvo);
+    }
+  }, true);
 
   // Delegacao de evento: o conteudo e reescrito a cada atualizacao, entao ouvir
   // no container evita religar handler em cada render.
