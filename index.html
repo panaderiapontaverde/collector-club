@@ -576,7 +576,38 @@
   // deliberadamente reversivel: gravar "Aceita" ou "Recusada" numa coluna, que o
   // proprio botao troca depois. Nada e apagado, nada e irreversivel, e um clique
   // indevido se desfaz com outro clique.
-  var WEBHOOK_DECISAO = '';  // <- URL do webhook do n8n; vazio desliga os botoes
+  var WEBHOOK_DECISAO = 'https://panaderiapv.vercel.app/api/collector-club/decisao';
+
+  // Decisões gravadas por esta tela, guardadas até o snapshot alcançá-las.
+  // Sem isso, recarregar a página nos 15 minutos entre o clique e a próxima
+  // execução do n8n mostraria a decisão antiga de volta — parecendo que a
+  // gravação falhou quando ela deu certo.
+  var CHAVE_DECISOES = 'collector-club-decisoes-pendentes';
+  function lerDecisoes(){
+    try { return JSON.parse(localStorage.getItem(CHAVE_DECISOES) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function lembrarDecisao(id, decisao){
+    try {
+      var d = lerDecisoes();
+      d[id] = decisao;
+      localStorage.setItem(CHAVE_DECISOES, JSON.stringify(d));
+    } catch (e) {}
+  }
+  // Assim que o snapshot trouxer o mesmo valor, a memória local perdeu a razão
+  // de existir: some, e a planilha volta a ser a única fonte da verdade.
+  function conciliarDecisoes(lista){
+    var d = lerDecisoes(), mudou = false;
+    lista.forEach(function(o){
+      if (!(o.id in d)) return;
+      if ((o.decisao || '') === (d[o.id] || '')){ delete d[o.id]; mudou = true; }
+      else { o.decisao = d[o.id]; o._decisaoPendente = true; }
+    });
+    if (mudou){
+      try { localStorage.setItem(CHAVE_DECISOES, JSON.stringify(d)); } catch (e) {}
+    }
+    return lista;
+  }
 
   var JPY = function(v){
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -585,7 +616,7 @@
   var SITE_ROTULO = { MERCARI:'Mercari', '2NDSTREET':'2nd Street' };
 
   function renderOportunidades(m){
-    var lista = m.oportunidades;
+    var lista = conciliarDecisoes(m.oportunidades);
     if (!lista.length){
       return vazio(m.temAbaOportunidades
         ? 'Nenhuma oportunidade cadastrada ainda.'
@@ -629,7 +660,8 @@
           (podeAgir ? '' : ' disabled') + '>Aceitar</button>' +
         '<button class="btn nao" data-decisao="Recusada" aria-pressed="' + recusada + '"' +
           (podeAgir ? '' : ' disabled') + '>Recusar</button>' +
-        '<span class="op-estado">' + (aceita ? 'Aceita' : recusada ? 'Recusada' : 'Sem decisão') + '</span>' +
+        '<span class="op-estado">' + (aceita ? 'Aceita' : recusada ? 'Recusada' : 'Sem decisão') +
+          (o._decisaoPendente ? ' <span class="pill">sincronizando</span>' : '') + '</span>' +
         '</div>';
       h += '</div></div></div>';
     });
@@ -639,7 +671,9 @@
            'em <code>WEBHOOK_DECISAO</code>, no topo do script.</p>';
     } else {
       h += '<p class="nota-rodape">A decisão é gravada na planilha e pode ser trocada a qualquer ' +
-           'momento clicando no outro botão. Nada é apagado.</p>';
+           'momento clicando no outro botão. Nada é apagado.<br>' +
+           'Marcadas como <span class="pill">sincronizando</span> já foram gravadas; o painel ' +
+           'volta a lê-las da planilha na próxima atualização do snapshot.</p>';
     }
     return h;
   }
@@ -660,14 +694,33 @@
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({id: id, decisao: decisao, em: new Date().toISOString()})
+    // Toda resposta da rota — inclusive as de erro — vem em JSON com um campo
+    // `erro` já escrito para leitura humana. Então o corpo é lido sempre, e não
+    // só no caminho feliz.
     }).then(function(res){
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json().catch(function(){ return {}; }).then(function(corpo){
+        return {ok: res.ok, status: res.status, corpo: corpo};
+      });
+    }).then(function(r){
+      for (var i = 0; i < botoes.length; i++) botoes[i].disabled = false;
+      if (!r.ok){
+        // 502 é falha de comunicação com a planilha, e nada foi gravado: vale
+        // tentar de novo. 400 e 404 são problema do pedido — repetir só repete
+        // o erro, então o botão volta ao estado anterior e o texto explica.
+        estado.textContent = (r.corpo && r.corpo.erro)
+          ? r.corpo.erro + (r.status === 502 ? ' (pode tentar de novo)' : '')
+          : 'Não consegui gravar (HTTP ' + r.status + ')';
+        return;
+      }
       for (var i = 0; i < botoes.length; i++){
-        botoes[i].disabled = false;
         botoes[i].setAttribute('aria-pressed', botoes[i] === btn);
       }
-      estado.textContent = decisao;
-      // A planilha e a fonte da verdade; o proximo ciclo confirma o que gravou.
+      // O snapshot só é regerado quando o n8n roda — até 15 min. Guardar a
+      // decisão aqui evita que ela "suma" numa recarga feita nesse intervalo.
+      // A resposta 200 traz a linha gravada, que é confirmação positiva de que
+      // chegou à planilha, independente do snapshot.
+      lembrarDecisao(id, decisao);
+      estado.textContent = decisao || 'Sem decisão';
       setTimeout(loadSnapshot, 1500);
     }).catch(function(e){
       for (var i = 0; i < botoes.length; i++) botoes[i].disabled = false;
