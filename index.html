@@ -632,8 +632,15 @@
 
     var h = '<div class="lista">';
     ordem.forEach(function(o){
-      var aceita  = /aceit/i.test(o.decisao || '');
-      var recusada = /recus/i.test(o.decisao || '');
+      // internal_status da planilha: NOVO / APROVADO / REJEITADO_USUARIO /
+      // COMPRADO. Os apelidos antigos (Aceita/Recusada) ainda sao reconhecidos
+      // na leitura enquanto a planilha puder ter linhas gravadas antes da troca.
+      // norm() devolve minúsculas e troca o que não é alfanumérico por espaço,
+      // então "REJEITADO_USUARIO" vira "rejeitado usuario".
+      var st = norm(o.decisao || '');
+      var aceita   = st === 'aprovado' || st === 'aceita';
+      var recusada = st === 'rejeitado usuario' || st === 'recusada';
+      var comprado = st === 'comprado';
       var site = SITE_ROTULO[(o.site || '').toUpperCase()] || o.site || '—';
       var titulo = esc(o.titulo || o.id);
       h += '<div class="linha"><div class="op">';
@@ -656,11 +663,12 @@
         '</div>';
       var podeAgir = !!WEBHOOK_DECISAO;
       h += '<div class="op-acoes" data-id="' + esc(o.id) + '">' +
-        '<button class="btn sim" data-decisao="Aceita" aria-pressed="' + aceita + '"' +
-          (podeAgir ? '' : ' disabled') + '>Aceitar</button>' +
-        '<button class="btn nao" data-decisao="Recusada" aria-pressed="' + recusada + '"' +
-          (podeAgir ? '' : ' disabled') + '>Recusar</button>' +
-        '<span class="op-estado">' + (aceita ? 'Aceita' : recusada ? 'Recusada' : 'Sem decisão') +
+        '<button class="btn sim" data-decisao="APROVADO" aria-pressed="' + aceita + '"' +
+          (podeAgir && !comprado ? '' : ' disabled') + '>Aprovar</button>' +
+        '<button class="btn nao" data-decisao="REJEITADO_USUARIO" aria-pressed="' + recusada + '"' +
+          (podeAgir && !comprado ? '' : ' disabled') + '>Rejeitar</button>' +
+        '<span class="op-estado">' +
+          (comprado ? 'Comprado' : aceita ? 'Aprovada' : recusada ? 'Rejeitada' : 'Sem decisão') +
           (o._decisaoPendente ? ' <span class="pill">sincronizando</span>' : '') + '</span>' +
         '</div>';
       h += '</div></div></div>';
@@ -672,6 +680,7 @@
     } else {
       h += '<p class="nota-rodape">A decisão é gravada na planilha e pode ser trocada a qualquer ' +
            'momento clicando no outro botão. Nada é apagado.<br>' +
+           'Item já comprado não aceita mudança de decisão pelo painel.<br>' +
            'Marcadas como <span class="pill">sincronizando</span> já foram gravadas; o painel ' +
            'volta a lê-las da planilha na próxima atualização do snapshot.</p>';
     }
@@ -720,7 +729,8 @@
       // A resposta 200 traz a linha gravada, que é confirmação positiva de que
       // chegou à planilha, independente do snapshot.
       lembrarDecisao(id, decisao);
-      estado.textContent = decisao || 'Sem decisão';
+      estado.textContent = decisao === 'APROVADO' ? 'Aprovada'
+        : decisao === 'REJEITADO_USUARIO' ? 'Rejeitada' : 'Sem decisão';
       setTimeout(loadSnapshot, 1500);
     }).catch(function(e){
       for (var i = 0; i < botoes.length; i++) botoes[i].disabled = false;
