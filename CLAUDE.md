@@ -164,6 +164,35 @@ Como quem chama é o navegador do João, e não um servidor, o webhook precisa d
 
 A gravação vai para um **webhook do n8n**, que escreve na planilha com as credenciais Google que já estão lá. O painel envia `{ id, decisao, em }`. A URL fica em `WEBHOOK_DECISAO`, no topo do script do `index.html`: **enquanto estiver vazia os botões nascem desabilitados**, com aviso na tela — a lista continua sendo exibida normalmente.
 
+### Aba encontrada pela MAIOR quantidade de dados, não pela primeira (21/09/2026)
+
+`acharAba` devolvia a primeira aba cuja linha de cabeçalho casasse com a assinatura. Em 21/09 a aba **REDES SOCIAIS** ganhou, na última linha, uma linha que parece cabeçalho (`Data | Campanha | … | CTR | …`). Ela casava com a assinatura dos anúncios, vinha antes da aba real na varredura e tinha **zero linhas abaixo** — então os 15 dias de tráfego pago sumiram do painel, sem erro nenhum.
+
+Agora todas as candidatas são coletadas e vence a que tem mais linhas de dado abaixo do cabeçalho. Cabeçalho solto é comum numa planilha viva; "a primeira que casa" não é critério suficiente.
+
+### Abas do radar
+
+| Aba | Assinatura usada | Entra no snapshot? |
+|---|---|---|
+| OPORTUNIDADES | `unique_key` + `internal_status` + `score_total` | sim |
+| IMAGENS | `image_id` + `unique_key` + `stored_url` | sim, agrupadas por oportunidade |
+| HISTORICO | — | **não** |
+| MODELOS, LOG_EXECUCOES, CONFIG | — | não (por ora) |
+
+A assinatura de OPORTUNIDADES precisa de `internal_status` e `score_total` porque **HISTORICO também tem** `unique_key`, `source` e `listing_status`. Casar só por esses traria a aba errada — a que guarda todo anúncio já visto, inclusive os descartados.
+
+**HISTORICO fica fora de propósito:** ela cresce sem teto e o `snapshot.json` é baixado pelo navegador a cada 5 minutos.
+
+Em IMAGENS, `stored_url` (cópia no R2) tem preferência sobre `original_url`, que morre quando o anúncio sai do ar. As fotos são ordenadas por `position`, preservando a ordem do anúncio.
+
+### Decisão humana: `internal_status`
+
+O painel grava `APROVADO` ou `REJEITADO_USUARIO` (ou vazio, que limpa) via `POST https://panaderiapv.vercel.app/api/collector-club/decisao`, com corpo `{id, decisao, em}`. A rota aceita os apelidos antigos `Aceita`/`Recusada` durante a transição e devolve `apelido: true` quando eles são usados.
+
+`NOVO` e `COMPRADO` são recusados com 400: o primeiro é atribuído na criação, o segundo noutro momento do processo. O painel também **desabilita os botões** quando `internal_status = COMPRADO` — a rota recusaria `COMPRADO`, mas não recusaria um `APROVADO` que apagasse o registro de compra.
+
+Rejeitado **continua visível** com status de rejeitado, decisão do João: o que é caro hoje pode ficar barato depois. Isso diverge do spec do radar, que diz "sai da visualização principal".
+
 ## Decisões já tomadas (não reabrir sem necessidade)
 
 - Sem backend/serverless, sem autenticação de aplicação, repositório público, atualização periódica (não real-time) — mesmas decisões da v1, continuam válidas.
