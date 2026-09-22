@@ -1,0 +1,345 @@
+{
+  "name": "Collector Club - Decisao da Oportunidade",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Por que este fluxo existe\n\nO painel do Collector Club e uma pagina ESTATICA em outro dominio. Ele precisa\ngravar a decisao humana na coluna `internal_status` da aba OPORTUNIDADES, e\npagina estatica nao tem\nservidor para guardar credencial do Google.\n\nQuem tem a credencial e este n8n -- a mesma conta que gera o snapshot do\nCollector Club a cada 15 minutos.\n\n    navegador -> /api/collector-club/decisao (Vercel) -> ESTE webhook -> Sheets\n\nA Vercel valida o corpo e libera o CORS; nenhum segredo chega ao navegador. O\nsegredo entre a Vercel e este webhook vive nos dois servidores, entao e segredo\nde verdade.\n\n## O que ele NAO faz\n\nNao cria linha, nao apaga nada, nao toca em outra coluna. Escreve UMA celula\nde uma linha que ja existe. Se o ID nao existir, responde `encontrado: false`\ne a Vercel traduz para 404.",
+        "height": 460,
+        "width": 420
+      },
+      "id": "nota-cc-porque",
+      "name": "Por que existe",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "collector-club-decisao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cc-webhook",
+      "name": "Webhook - Decisao",
+      "webhookId": "collector-club-decisao",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        48,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Porteiro. A Vercel ja validou o corpo; aqui so se confere QUEM chamou.\n//\n// O segredo nao e teatro: ele vive no servidor dos dois lados. A pagina do\n// painel nunca o ve -- ela fala com a Vercel, e e a Vercel que apresenta isto.\nconst esperado = String($env.COLLECTOR_CLUB_WEBHOOK_SECRET ?? '');\nconst veio = String($input.first().json.headers?.authorization ?? '');\nif (!esperado || veio !== 'Bearer ' + esperado) {\n  throw new Error('Chamada nao autorizada no webhook do Collector Club.');\n}\n\nconst b = $input.first().json.body ?? {};\nconst id = String(b.id ?? '').trim();\nif (!id) throw new Error('Corpo sem `id`.');\n\n// A Vercel ja normalizou os apelidos antigos; aqui so chegam os tres valores\n// finais. Repetir a lista fechada e de proposito: se alguem apontar outro\n// chamador para este webhook, a planilha continua protegida.\n//\n// `decisao` pode ser string vazia de proposito -- e o pedido de LIMPAR a\n// celula. Por isso o teste e de presenca, nao de verdade.\nif (!('decisao' in b)) throw new Error('Corpo sem `decisao`.');\nconst decisao = String(b.decisao ?? '');\nif (!['APROVADO', 'REJEITADO_USUARIO', ''].includes(decisao)) {\n  throw new Error('Decisao invalida: ' + JSON.stringify(b.decisao));\n}\n\n// A planilha do Collector Club, a MESMA que o snapshot le a cada 15 minutos.\n//\n// Cravada aqui em vez de exigir variavel de ambiente: e um id de Drive, nao um\n// segredo -- quem controla o acesso e a permissao da conta do Google, nao o\n// sigilo do id. Deixar em variavel obrigaria a mexer no host do n8n e\n// reiniciar para uma informacao que ja esta publica no workflow do snapshot.\n//\n// `$env.COLLECTOR_CLUB_SHEET_ID` continua tendo precedencia, para apontar para\n// uma copia de teste sem editar o fluxo.\nconst planilha = String($env.COLLECTOR_CLUB_SHEET_ID || '1Y2lnqYZdzThhyVAoL5O3FCgNPrX1LZcmF4B15M2UMdU');\n\nreturn [{ json: { id, decisao, em: b.em ?? null, planilha } }];"
+      },
+      "id": "cc-validar",
+      "name": "Validar Chamada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('Validar Chamada').first().json.planilha + '/values/' + encodeURIComponent($json.abaA1 + '!A1:ZZ5000') + '?majorDimension=ROWS' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "cc-ler",
+      "name": "Sheets - Ler Oportunidades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7XBAjH2IGhlfSt5G",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Acha a linha do ID e a coluna `internal_status` -- as duas PELO ROTULO.\n//\n// Coluna identificada por LETRA quebra na primeira vez que alguem insere uma\n// coluna no meio, e quebra em silencio: escreve no lugar errado. Identificar\n// pelo nome do cabecalho custa dez linhas e sobrevive a planilha viva.\n//\n// Foi o modo de falha do proprio snapshot do Collector Club em 16/09/2026 --\n// o cliente renomeou \"Custo final\" para \"Custo registrado\" e o fluxo passou a\n// dizer que a aba nao existia. Aqui a licao esta aplicada tres vezes: a ABA e\n// descoberta pelo nome, o CABECALHO e procurado, e os dois aceitam variacao de\n// acento e de caixa.\n//\n// A coluna e `internal_status` e nao `Decisao` desde 21/09/2026: e ela que o\n// Cowork LE. Gravar na outra seria esquecer a decisao em silencio -- o painel\n// marcaria REJEITADO_USUARIO e o radar sugeriria o mesmo relogio amanha.\n\nconst norm = (v) => String(v ?? '')\n  .normalize('NFD')\n  .split('')\n  .filter((c) => { const x = c.charCodeAt(0); return x < 0x300 || x > 0x36f; })\n  .join('')\n  .toUpperCase()\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst pedido = $('Validar Chamada').first().json;\nconst linhas = $input.first().json.values || [];\nif (!linhas.length) throw new Error('A aba OPORTUNIDADES voltou vazia.');\n\n// O cabecalho nao e necessariamente a linha 1: planilha costuma ter titulo.\nlet iCab = -1, colId = -1, colDec = -1;\nfor (let i = 0; i < Math.min(linhas.length, 20); i++) {\n  const cels = (linhas[i] || []).map(norm);\n  // A aba tem DUAS colunas de identificador: `id`, interno do radar, e\n  // `unique_key`, a chave MERCARI_/2NDSTREET_ que o painel conhece e envia.\n  // Procurar por `id` daria encontrado:false em toda chamada -- 404 para\n  // oportunidade que existe, sem nada apontando a causa.\n  const a = cels.indexOf('UNIQUE_KEY') !== -1 ? cels.indexOf('UNIQUE_KEY') : cels.indexOf('ID');\n  const b = cels.findIndex((c) => c === 'INTERNAL_STATUS');\n  if (a !== -1 && b !== -1) { iCab = i; colId = a; colDec = b; break; }\n}\nif (iCab === -1) {\n  const vistos = linhas.slice(0, 8).map((l) => '[' + (l || []).slice(0, 12).join(' | ') + ']').join('  ');\n  throw new Error('Nao achei uma linha de cabecalho com unique_key (ou id) + internal_status. Cabecalhos vistos: ' + vistos);\n}\n\nconst alvo = norm(pedido.id);\nlet linha = -1;\nfor (let i = iCab + 1; i < linhas.length; i++) {\n  if (norm((linhas[i] || [])[colId]) === alvo) { linha = i + 1; break; }\n}\n\nif (linha === -1) {\n  return [{ json: { encontrado: false, id: pedido.id } }];\n}\n\n// Indice de coluna -> letra (A, B, ... Z, AA...). Vale ate colunas alem de Z,\n// que uma aba de oportunidades alcanca sem esforco.\nlet n = colDec, letra = '';\ndo { letra = String.fromCharCode(65 + (n % 26)) + letra; n = Math.floor(n / 26) - 1; } while (n >= 0);\n\nreturn [{ json: {\n  encontrado: true,\n  id: pedido.id,\n  decisao: pedido.decisao,\n  em: pedido.em,\n  planilha: pedido.planilha,\n  linha,\n  intervalo: $('Escolher Aba').first().json.abaA1 + '!' + letra + linha,\n} }];"
+      },
+      "id": "cc-localizar",
+      "name": "Localizar Linha e Coluna",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cc-achou",
+              "leftValue": "={{ $json.encontrado }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "cc-if",
+      "name": "Achou o ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.planilha + '/values/' + encodeURIComponent($json.intervalo) + '?valueInputOption=RAW' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ range: $json.intervalo, majorDimension: 'ROWS', values: [[$json.decisao]] }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "cc-escrever",
+      "name": "Sheets - Escrever Decisao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        -96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7XBAjH2IGhlfSt5G",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ encontrado: true, id: $('Localizar Linha e Coluna').first().json.id, decisao: $('Localizar Linha e Coluna').first().json.decisao, linha: $('Localizar Linha e Coluna').first().json.linha, intervalo: $('Localizar Linha e Coluna').first().json.intervalo }) }}",
+        "options": {}
+      },
+      "id": "cc-resp-ok",
+      "name": "Responder Gravado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ encontrado: false, id: $json.id }) }}",
+        "options": {}
+      },
+      "id": "cc-resp-404",
+      "name": "Responder Nao Encontrado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Coluna pelo ROTULO, aba pelo NOME\n\n`Escolher Aba` acha a OPORTUNIDADES comparando sem acento e sem caixa -- em A1\nnotation o nome da aba e sensivel a caixa, e o spec ja a escreveu de duas\nformas.\n\n`Localizar Linha e Coluna` procura os cabecalhos `unique_key` e\n`internal_status` varrendo as 20 primeiras linhas, do mesmo jeito.\n\nE `unique_key`, nao `id`: a aba tem as duas colunas. `id` e identificador\ninterno do radar; `unique_key` e a chave MERCARI_/2NDSTREET_ que o painel\nconhece. Procurar pela errada daria 404 em toda oportunidade que existe.\n\nColuna por letra quebra na primeira vez que alguem insere uma coluna no meio --\ne quebra em SILENCIO, escrevendo no lugar errado. Numa coluna que decide compra\nde produto, isso e pior que um erro.\n\nEm 16/09/2026 o snapshot deste mesmo Collector Club parou porque o cliente\nrenomeou \"Custo final\" para \"Custo registrado\". A licao esta aplicada aqui\nantes de custar a primeira vez.\n\n## Por que `internal_status`, e nao `Decisao`\n\nQuem LE a decisao e o Cowork, o modulo de radar que alimenta a aba -- e ele le\n`internal_status`. Gravar numa coluna `Decisao` faria o painel marcar\nREJEITADO_USUARIO e o radar sugerir o mesmo relogio amanha, sem erro nenhum.\n\nOs valores sao APROVADO, REJEITADO_USUARIO e `''` (limpa, volta a valer como\nNOVO). NOVO e COMPRADO NAO entram por aqui: sao atribuidos noutro momento do\nprocesso, e um clique errado marcaria um relogio como comprado.\n\n## Respostas\n\n| Situacao | Aqui | A Vercel devolve |\n|---|---|---|\n| gravou | `encontrado: true` | 200 |\n| ID nao existe | `encontrado: false` | 404 |\n| segredo errado | erro do no | 502 |\n| aba ou cabecalho sumiu | erro com o que foi visto | 502 |\n\nO 404 nasce de um 200 daqui de proposito: 404 vindo do n8n seria ambiguo --\npoderia ser o ID inexistente ou o webhook desativado.\n\n## Variaveis que o n8n precisa\n\nUma so: `COLLECTOR_CLUB_WEBHOOK_SECRET`, o mesmo valor configurado na Vercel.\n\nO id da planilha esta cravado no `Validar Chamada` -- e a mesma que o snapshot\nja le. `COLLECTOR_CLUB_SHEET_ID` continua funcionando como precedencia, para\napontar para uma copia de teste.",
+        "height": 620,
+        "width": 440
+      },
+      "id": "nota-cc-rotulo",
+      "name": "Sobre rotulos e respostas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $json.planilha + '?fields=sheets.properties.title' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "cc-abas",
+      "name": "Sheets - Descobrir Abas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7XBAjH2IGhlfSt5G",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// A aba pelo NOME, comparando sem acento e sem caixa.\n//\n// O spec escreveu \"Oportunidades\" e depois \"OPORTUNIDADES\". Em A1 notation o\n// nome da aba e sensivel a caixa, entao uma letra maiuscula a mais derrubaria\n// a gravacao com um erro que nao diz isso. Descobrir e casar custa um nó.\nconst norm = (v) => String(v ?? \"\")\n  .normalize(\"NFD\")\n  .split(\"\")\n  .filter((c) => { const x = c.charCodeAt(0); return x < 0x300 || x > 0x36f; })\n  .join(\"\")\n  .toUpperCase()\n  .trim();\n\nconst abas = ($input.first().json.sheets || []).map((s) => s.properties.title);\nconst alvo = abas.find((t) => norm(t) === \"OPORTUNIDADES\");\nif (!alvo) {\n  throw new Error(\"Nao achei a aba OPORTUNIDADES. Abas da planilha: \" + abas.join(\" | \"));\n}\n// `abaA1` e o mesmo nome pronto para A1 notation. Nome de aba com espaco\n// precisa de aspas simples na faixa (\"'Vendas de Terceiros'!A1\"), e aspa\n// interna se escapa dobrando.\n//\n// O caso que isto protege nao e o rename: nome diferente nao casa aqui e\n// para com erro claro. E o espaco INVISIVEL -- uma aba chamada\n// \"OPORTUNIDADES \" passa no casamento por causa do trim, e a faixa sem\n// aspas viraria \"OPORTUNIDADES !J2\", que a API recusa sem dizer por que.\nconst abaA1 = \"'\" + alvo.replace(/'/g, \"''\") + \"'\";\nreturn [{ json: { aba: alvo, abaA1 } }];"
+      },
+      "id": "cc-escolher-aba",
+      "name": "Escolher Aba",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Decisao": {
+      "main": [
+        [
+          {
+            "node": "Validar Chamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Chamada": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Descobrir Abas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Ler Oportunidades": {
+      "main": [
+        [
+          {
+            "node": "Localizar Linha e Coluna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Localizar Linha e Coluna": {
+      "main": [
+        [
+          {
+            "node": "Achou o ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Achou o ID?": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Escrever Decisao",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Nao Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Escrever Decisao": {
+      "main": [
+        [
+          {
+            "node": "Responder Gravado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Descobrir Abas": {
+      "main": [
+        [
+          {
+            "node": "Escolher Aba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher Aba": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Ler Oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "EEb2bMWLTVfM0xkG",
+    "availableInMCP": true
+  },
+  "versionId": "54fd6ae3-b771-4001-8c7b-ea6716fd76b7",
+  "meta": {
+    "instanceId": "98d0e2515b235be5705092eafa32ef252c3646fb91d6eeb4dc3bab30893db9a4"
+  },
+  "nodeGroups": [],
+  "id": "IlLq2UzqMq3jXYNF",
+  "tags": []
+}

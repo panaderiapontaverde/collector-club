@@ -199,6 +199,24 @@ O painel grava `APROVADO` ou `REJEITADO_USUARIO` (ou vazio, que limpa) via `POST
 
 Rejeitado **continua visível** com status de rejeitado, decisão do João: o que é caro hoje pode ficar barato depois. Isso diverge do spec do radar, que diz "sai da visualização principal".
 
+### O segundo workflow: gravação da decisão
+
+`collector-club-n8n-decisao.json` — mantido pelo time de desenvolvimento, versionado aqui porque integra com o painel. O caminho completo da decisão humana:
+
+```
+navegador → /api/collector-club/decisao (Vercel) → webhook do n8n → Sheets
+```
+
+A Vercel valida o corpo, normaliza os apelidos antigos e libera o CORS; o segredo entre ela e o n8n vive nos dois servidores e nunca chega ao navegador. O n8n escreve **uma célula** de uma linha que já existe: não cria, não apaga, não toca noutra coluna.
+
+**Duas correções aplicadas em 22/09/2026**, ambas do mesmo tipo — funcionaria hoje, quebraria em silêncio depois:
+
+1. **Procurava pela coluna `id`, não `unique_key`.** A aba OPORTUNIDADES tem as duas: `id` é identificador interno do radar (`OPP-0001`), `unique_key` é a chave `MERCARI_…`/`2NDSTREET_…` que o painel conhece e envia. Buscar pela errada daria `encontrado: false` em **toda** chamada — 404 para oportunidade que existe, sem nada apontando a causa.
+
+2. **Nome da aba sem aspas em A1 notation.** Não é o rename que isso protege (nome diferente não casa no `Escolher Aba` e para com erro claro), e sim o **espaço invisível**: uma aba chamada `"OPORTUNIDADES "` passa no casamento por causa do `trim()`, e a faixa sem aspas viraria `OPORTUNIDADES !J2`, que a API recusa sem explicar. `Escolher Aba` agora devolve também `abaA1`, já citado e com aspa interna escapada.
+
+Conferido rodando os Code nodes reais contra o cabeçalho de verdade da aba: as duas chaves encontram a linha certa e a gravação cai em `'OPORTUNIDADES'!J2` e `!J3`; id inexistente dá 404 legítimo.
+
 ## Decisões já tomadas (não reabrir sem necessidade)
 
 - Sem backend/serverless, sem autenticação de aplicação, repositório público, atualização periódica (não real-time) — mesmas decisões da v1, continuam válidas.
