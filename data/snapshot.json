@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-21T17:00:55.045Z",
+  "updatedAt": "2026-09-23T15:00:55.285Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 12573.25,
+    "caixaDisponivel": 12537.27,
     "contasReceber": 3400,
     "contasPagar": 0,
     "estoquePeloCusto": 27806.98,
@@ -17,14 +17,14 @@
     "taxasVendas": 0,
     "vendasLiquidas": 28000,
     "custoItensVendidos": 22602.72,
-    "despesasOperacionais": 1140,
+    "despesasOperacionais": 1175.98,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 4257.28
+    "resultadoLiquido": 4221.3
   },
   "indicadores": {
     "itensEstoque": 10,
     "itensVendidos": 9,
-    "margemLiquidaAcumulada": 15.2
+    "margemLiquidaAcumulada": 15.1
   },
   "estoque": [
     {
@@ -966,6 +966,18 @@
       "saida": 741.22,
       "formaPagamento": null,
       "saldo": 12573.25
+    },
+    {
+      "data": "23/09/2026",
+      "descricao": "Chip de celular para a loja",
+      "categoria": "Outra despesa",
+      "itemRelacionado": "The Collector Club",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 35.98,
+      "formaPagamento": null,
+      "saldo": 12537.27
     }
   ],
   "anuncios": []
