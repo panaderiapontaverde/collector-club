@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-23T15:00:55.285Z",
+  "updatedAt": "2026-09-25T14:30:55.361Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 12537.27,
+    "caixaDisponivel": 12337.27,
     "contasReceber": 3400,
     "contasPagar": 0,
     "estoquePeloCusto": 27806.98,
@@ -17,14 +17,14 @@
     "taxasVendas": 0,
     "vendasLiquidas": 28000,
     "custoItensVendidos": 22602.72,
-    "despesasOperacionais": 1175.98,
+    "despesasOperacionais": 1375.98,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 4221.3
+    "resultadoLiquido": 4021.3
   },
   "indicadores": {
     "itensEstoque": 10,
     "itensVendidos": 9,
-    "margemLiquidaAcumulada": 15.1
+    "margemLiquidaAcumulada": 14.4
   },
   "estoque": [
     {
@@ -978,6 +978,18 @@
       "saida": 35.98,
       "formaPagamento": null,
       "saldo": 12537.27
+    },
+    {
+      "data": "25/09/2026",
+      "descricao": "Tráfego pago",
+      "categoria": "Anúncio",
+      "itemRelacionado": null,
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 200,
+      "formaPagamento": null,
+      "saldo": 12337.27
     }
   ],
   "anuncios": []
