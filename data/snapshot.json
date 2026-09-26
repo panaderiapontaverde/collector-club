@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-25T14:30:55.361Z",
+  "updatedAt": "2026-09-26T19:15:55.045Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 12337.27,
+    "caixaDisponivel": 16037.27,
     "contasReceber": 3400,
     "contasPagar": 0,
-    "estoquePeloCusto": 27806.98,
+    "estoquePeloCusto": 24897.08,
     "valoresReceberSocio": 3975,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
@@ -13,18 +13,18 @@
     "patrimonioLiquido": 0
   },
   "dreAcumulada": {
-    "vendasBrutas": 28000,
+    "vendasBrutas": 31700,
     "taxasVendas": 0,
-    "vendasLiquidas": 28000,
-    "custoItensVendidos": 22602.72,
+    "vendasLiquidas": 31700,
+    "custoItensVendidos": 25512.62,
     "despesasOperacionais": 1375.98,
     "receitaVendasTerceiros": 0,
-    "resultadoLiquido": 4021.3
+    "resultadoLiquido": 4811.4
   },
   "indicadores": {
-    "itensEstoque": 10,
-    "itensVendidos": 9,
-    "margemLiquidaAcumulada": 14.4
+    "itensEstoque": 9,
+    "itensVendidos": 10,
+    "margemLiquidaAcumulada": 15.2
   },
   "estoque": [
     {
@@ -285,13 +285,13 @@
       "imposto": 384.14,
       "outrosCustos": null,
       "custoFinal": 2909.9,
-      "dataVenda": null,
-      "canalVenda": null,
-      "valorVenda": null,
+      "dataVenda": "26/09/2026",
+      "canalVenda": "OLX",
+      "valorVenda": 3700,
       "taxasVenda": null,
-      "valorLiquido": null,
-      "lucro": null,
-      "margem": null
+      "valorLiquido": 3700,
+      "lucro": 790.1,
+      "margem": 21.4
     },
     {
       "dataCompra": "15/09/2026",
@@ -990,6 +990,18 @@
       "saida": 200,
       "formaPagamento": null,
       "saldo": 12337.27
+    },
+    {
+      "data": "26/09/2026",
+      "descricao": "Venda — TAG Heuer Série 2000 WK1110 Full Set",
+      "categoria": "Venda",
+      "itemRelacionado": "TAG Heuer Série 2000 WK1110 — 2º exemplar (Full Set)",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": 3700,
+      "saida": null,
+      "formaPagamento": "Pix",
+      "saldo": 16037.27
     }
   ],
   "anuncios": []
