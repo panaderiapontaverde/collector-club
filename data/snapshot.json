@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-09-28T16:15:55.266Z",
+  "updatedAt": "2026-09-29T10:15:55.914Z",
   "posicaoFinanceira": {
-    "caixaDisponivel": 15125.32,
+    "caixaDisponivel": 14383.46,
     "contasReceber": 3400,
     "contasPagar": 0,
-    "estoquePeloCusto": 25809.03,
+    "estoquePeloCusto": 26550.89,
     "valoresReceberSocio": 3975,
     "ativosOperacionais": 0,
     "emprestimosRecebidos": 40000,
@@ -339,9 +339,9 @@
       "comissao": 458.64,
       "iof": null,
       "frete": null,
-      "imposto": null,
+      "imposto": 420.04,
       "outrosCustos": null,
-      "custoFinal": 2751.85,
+      "custoFinal": 3171.89,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -358,9 +358,9 @@
       "comissao": 351.39,
       "iof": null,
       "frete": null,
-      "imposto": null,
+      "imposto": 321.82,
       "outrosCustos": null,
-      "custoFinal": 2108.34,
+      "custoFinal": 2430.16,
       "dataVenda": null,
       "canalVenda": null,
       "valorVenda": null,
@@ -1026,6 +1026,18 @@
       "saida": 678.33,
       "formaPagamento": "Pix",
       "saldo": 15125.32
+    },
+    {
+      "data": "29/09/2026",
+      "descricao": "Imposto de importação DHL — Seiko preto 3º + Seiko Panda 4º — rastreio 8546562581",
+      "categoria": "Custo de importação",
+      "itemRelacionado": "Seiko preto 3º (R$ 321,82) + Seiko Panda 4º (R$ 420,04); DHL 8546562581",
+      "vencimento": null,
+      "realizado": "Sim",
+      "entrada": null,
+      "saida": 741.86,
+      "formaPagamento": null,
+      "saldo": 14383.46
     }
   ],
   "anuncios": []
